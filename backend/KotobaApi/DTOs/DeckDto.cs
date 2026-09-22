@@ -1,0 +1,1 @@
+﻿public record DeckDto(Guid Id, Guid UserId, string Name, string? Description, DateTimeOffset CreatedAt);

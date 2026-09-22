@@ -1,0 +1,1 @@
+﻿public record UpdateDeckDto(string Name, string? Description);

@@ -1,0 +1,1 @@
+﻿public record CreateDeckDto(string Name, string? Description);

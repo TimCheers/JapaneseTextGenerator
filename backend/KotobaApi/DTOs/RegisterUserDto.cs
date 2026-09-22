@@ -1,0 +1,1 @@
+﻿public record RegisterUserDto(string DisplayName, string Email, string Password, string? NativeLanguage);

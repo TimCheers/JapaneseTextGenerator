@@ -1,0 +1,1 @@
+﻿public record UserDto(Guid Id, string DisplayName, string Email, string? NativeLanguage, DateTimeOffset CreatedAt);
