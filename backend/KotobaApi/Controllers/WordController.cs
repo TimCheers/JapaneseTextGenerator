@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace KotobaApi.Controllers;
 
 [ApiController]
-[Route("api/users/{userId}/decks")]
+[Route("api/users/{deckId}/decks")]
 public class WordController : ControllerBase
 {
     private readonly IWordService _service;

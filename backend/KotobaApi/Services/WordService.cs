@@ -44,7 +44,6 @@ public class WordService : IWordService
         word.ExampleSentence = dto.ExampleSentence;
         word.Notes = dto.Notes;
         word.AcquisitionSource = dto.AcquisitionSource;
-        word.Reading = dto.Reading;
         word.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync();
         return true;
