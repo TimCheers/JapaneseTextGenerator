@@ -12,6 +12,12 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
 builder.Services.AddScoped<IWordService, WordService>();
+builder.Services.AddScoped<IWordProgressService, WordProgressService>();
+builder.Services.AddScoped<IGenerationRequestService, GenerationRequestService>();
+builder.Services.AddScoped<IGeneratedTextService, GeneratedTextService>();
+builder.Services.AddScoped<IComprehensionQuestionService, ComprehensionQuestionService>();
+builder.Services.AddScoped<IPracticeAttemptService, PracticeAttemptService>();
+builder.Services.AddScoped<IUserAnswerService, UserAnswerService>();
 
 
 builder.Services.AddCors(options =>
