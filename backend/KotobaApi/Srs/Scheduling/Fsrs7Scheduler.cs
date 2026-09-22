@@ -6,6 +6,11 @@ namespace KotobaApi.Srs.Scheduling;
 /// Dependency-free C# runtime port of the finished 34-parameter, dual-trace FSRS-7 model.
 /// It supports fractional-day intervals and same-day scheduling.
 /// </summary>
+/// <remarks>
+/// Ported from open-spaced-repetition/fsrs-rs (<c>src/model_v7.rs</c>,
+/// <c>src/inference_v7.rs</c>, BSD-3-Clause). See
+/// <c>backend/THIRD_PARTY_NOTICES.md</c> and retain that notice on redistribution.
+/// </remarks>
 public sealed class Fsrs7Scheduler : IFsrsScheduler
 {
     private const double StabilityMin = 0.0001;

@@ -5,7 +5,8 @@ using Xunit;
 namespace KotobaApi.Tests;
 
 /// <summary>
-/// Recommendation cases R1-R22 from docs/tests.md, against <see cref="SrsRecommendation"/>.
+/// Recommendation cases R1-R22 from docs/srs-scheduling-and-recommendation.md,
+/// against <see cref="SrsRecommendation"/>.
 /// Fixed clock: now = 2026-09-23 00:00 UTC.
 /// </summary>
 public sealed class SrsRecommendationTests
@@ -14,17 +15,27 @@ public sealed class SrsRecommendationTests
     private static readonly Guid User = Guid.NewGuid();
     private static readonly Fsrs7MemoryState AnyState = new(5.0, 4.0, 5.0);
 
-    private static SrsCandidate Candidate(Guid word, DateTimeOffset createdAt, WordLearningProgress? progress) =>
-        new(word, createdAt, progress);
+    private static SrsCandidate NewCandidate(DateTimeOffset createdAt) =>
+        new(User, Guid.NewGuid(), createdAt, null);
 
-    private static WordLearningProgress Reviewed(Guid word, DateTimeOffset dueAt, DateTimeOffset? lastReviewedAt = null) =>
-        new(User, word, AnyState, lastReviewedAt ?? dueAt.AddDays(-5), dueAt, 2, 0);
+    private static SrsCandidate ReviewedCandidate(
+        DateTimeOffset createdAt,
+        DateTimeOffset dueAt,
+        DateTimeOffset? lastReviewedAt = null)
+    {
+        var word = Guid.NewGuid();
+        return new SrsCandidate(
+            User,
+            word,
+            createdAt,
+            new WordLearningProgress(User, word, AnyState, lastReviewedAt ?? dueAt.AddDays(-5), dueAt, 2, 0));
+    }
 
     // R1. New word (no progress) is eligible but behind DUE words (covered with R9).
     [Fact]
     public void R1_NullProgress_ClassifiedNew()
     {
-        var candidate = Candidate(Guid.NewGuid(), Now, null);
+        var candidate = NewCandidate(Now);
 
         Assert.Equal(SrsRecommendationKind.New, SrsRecommendation.Classify(candidate, Now));
     }
@@ -33,18 +44,17 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R2_FutureDue_Excluded()
     {
-        var word = Guid.NewGuid();
-        var candidates = new[] { Candidate(word, Now.AddDays(-10), Reviewed(word, new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero))) };
+        var candidate = ReviewedCandidate(Now.AddDays(-10), new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero));
 
-        Assert.Equal(SrsRecommendationKind.NotDue, SrsRecommendation.Classify(candidates[0], Now));
-        Assert.Empty(SrsRecommendation.OrderForReview(candidates, Now, 10));
+        Assert.Equal(SrsRecommendationKind.NotDue, SrsRecommendation.Classify(candidate, Now));
+        Assert.Empty(SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
     }
 
     // R3. Exactly due now counts as DUE (DueAt <= now).
     [Fact]
     public void R3_ExactlyDueNow_IsDue()
     {
-        var candidate = Candidate(Guid.NewGuid(), Now.AddDays(-10), Reviewed(Guid.NewGuid(), Now));
+        var candidate = ReviewedCandidate(Now.AddDays(-10), Now);
 
         Assert.Equal(SrsRecommendationKind.Due, SrsRecommendation.Classify(candidate, Now));
         Assert.Single(SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
@@ -54,7 +64,7 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R4_OneMinuteOverdue_IsDue()
     {
-        var candidate = Candidate(Guid.NewGuid(), Now.AddDays(-10), Reviewed(Guid.NewGuid(), Now.AddMinutes(-1)));
+        var candidate = ReviewedCandidate(Now.AddDays(-10), Now.AddMinutes(-1));
 
         Assert.Equal(SrsRecommendationKind.Due, SrsRecommendation.Classify(candidate, Now));
     }
@@ -63,63 +73,52 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R5_R6_MostOverdueFirst()
     {
-        var threeDaysOverdue = Candidate(Guid.NewGuid(), Now.AddDays(-30), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 20, 0, 0, 0, TimeSpan.Zero)));
-        var minutesOverdue = Candidate(Guid.NewGuid(), Now.AddDays(-30), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 22, 23, 50, 0, TimeSpan.Zero)));
+        var threeDaysOverdue = ReviewedCandidate(Now.AddDays(-30), new DateTimeOffset(2026, 9, 20, 0, 0, 0, TimeSpan.Zero));
+        var minutesOverdue = ReviewedCandidate(Now.AddDays(-30), new DateTimeOffset(2026, 9, 22, 23, 50, 0, TimeSpan.Zero));
 
         var ordered = SrsRecommendation.OrderForReview(new[] { minutesOverdue, threeDaysOverdue }, Now, 10);
 
         Assert.Equal(new[] { threeDaysOverdue.WordId, minutesOverdue.WordId }, ordered.Select(c => c.WordId));
     }
 
-    // R7. Identical DueAt breaks tie by lower retrievability.
+    // R7. Identical DueAt falls back to WordId for a deterministic order.
     [Fact]
-    public void R7_SameDueAt_LowerRetrievabilityFirst()
+    public void R7_SameDueAt_WordIdOrder()
     {
         var dueAt = new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
-        var kaku = Guid.NewGuid();
-        var kiku = Guid.NewGuid();
-        var candidates = new[]
-        {
-            Candidate(kaku, Now.AddDays(-30), Reviewed(kaku, dueAt)),
-            Candidate(kiku, Now.AddDays(-30), Reviewed(kiku, dueAt)),
-        };
-        var retrievability = new Dictionary<Guid, double> { [kaku] = 0.68, [kiku] = 0.54 };
-
-        var ordered = SrsRecommendation.OrderForReview(candidates, Now, 10, retrievability);
-
-        Assert.Equal(new[] { kiku, kaku }, ordered.Select(c => c.WordId));
-    }
-
-    // R8. Fully identical priority falls back to WordId for determinism.
-    [Fact]
-    public void R8_IdenticalPriority_WordIdOrder()
-    {
-        var dueAt = new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
-        var first = Guid.NewGuid();
-        var second = Guid.NewGuid();
-        var lower = first.CompareTo(second) < 0 ? first : second;
+        var first = ReviewedCandidate(Now.AddDays(-30), dueAt);
+        var second = ReviewedCandidate(Now.AddDays(-30), dueAt);
+        var lower = first.WordId.CompareTo(second.WordId) < 0 ? first : second;
         var higher = lower == first ? second : first;
 
-        var candidates = new[]
-        {
-            Candidate(higher, Now.AddDays(-30), Reviewed(higher, dueAt)),
-            Candidate(lower, Now.AddDays(-30), Reviewed(lower, dueAt)),
-        };
+        var ordered = SrsRecommendation.OrderForReview(new[] { higher, lower }, Now, 10);
 
-        var ordered = SrsRecommendation.OrderForReview(candidates, Now, 10);
+        Assert.Equal(new[] { lower.WordId, higher.WordId }, ordered.Select(c => c.WordId));
+    }
 
-        Assert.Equal(new[] { lower, higher }, ordered.Select(c => c.WordId));
+    // R8. Fully identical priority is stable regardless of input order.
+    [Fact]
+    public void R8_IdenticalPriority_SameOutputEitherInputOrder()
+    {
+        var dueAt = new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.Zero);
+        var first = ReviewedCandidate(Now.AddDays(-30), dueAt);
+        var second = ReviewedCandidate(Now.AddDays(-30), dueAt);
+
+        var forward = SrsRecommendation.OrderForReview(new[] { first, second }, Now, 10);
+        var reversed = SrsRecommendation.OrderForReview(new[] { second, first }, Now, 10);
+
+        Assert.Equal(forward.Select(c => c.WordId), reversed.Select(c => c.WordId));
     }
 
     // R9. Due + new + future: DUE by age, then NEW, future excluded.
     [Fact]
     public void R9_MixedDeck_DueThenNewFutureExcluded()
     {
-        var kau = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 20, 0, 0, 0, TimeSpan.Zero)));
-        var miru = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 22, 23, 50, 0, TimeSpan.Zero)));
-        var taberu = Candidate(Guid.NewGuid(), Now.AddDays(-5), null);
-        var nomu = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 26, 0, 0, 0, TimeSpan.Zero)));
-        var iku = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), new DateTimeOffset(2026, 9, 29, 0, 0, 0, TimeSpan.Zero)));
+        var kau = ReviewedCandidate(Now.AddDays(-40), new DateTimeOffset(2026, 9, 20, 0, 0, 0, TimeSpan.Zero));
+        var miru = ReviewedCandidate(Now.AddDays(-40), new DateTimeOffset(2026, 9, 22, 23, 50, 0, TimeSpan.Zero));
+        var taberu = NewCandidate(Now.AddDays(-5));
+        var nomu = ReviewedCandidate(Now.AddDays(-40), new DateTimeOffset(2026, 9, 26, 0, 0, 0, TimeSpan.Zero));
+        var iku = ReviewedCandidate(Now.AddDays(-40), new DateTimeOffset(2026, 9, 29, 0, 0, 0, TimeSpan.Zero));
 
         var ordered = SrsRecommendation.OrderForReview(new[] { iku, nomu, taberu, miru, kau }, Now, 10);
 
@@ -130,9 +129,9 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R10_OnlyNew_AllEligibleByCreatedAt()
     {
-        var oldest = Candidate(Guid.NewGuid(), Now.AddDays(-30), null);
-        var middle = Candidate(Guid.NewGuid(), Now.AddDays(-20), null);
-        var newest = Candidate(Guid.NewGuid(), Now.AddDays(-10), null);
+        var oldest = NewCandidate(Now.AddDays(-30));
+        var middle = NewCandidate(Now.AddDays(-20));
+        var newest = NewCandidate(Now.AddDays(-10));
 
         var ordered = SrsRecommendation.OrderForReview(new[] { newest, oldest, middle }, Now, 10);
 
@@ -145,8 +144,8 @@ public sealed class SrsRecommendationTests
     {
         var candidates = new[]
         {
-            Candidate(Guid.NewGuid(), Now.AddDays(-30), Reviewed(Guid.NewGuid(), Now.AddDays(1))),
-            Candidate(Guid.NewGuid(), Now.AddDays(-30), Reviewed(Guid.NewGuid(), Now.AddDays(2))),
+            ReviewedCandidate(Now.AddDays(-30), Now.AddDays(1)),
+            ReviewedCandidate(Now.AddDays(-30), Now.AddDays(2)),
         };
 
         Assert.Empty(SrsRecommendation.OrderForReview(candidates, Now, 10));
@@ -164,7 +163,7 @@ public sealed class SrsRecommendationTests
             new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero),
         };
         var candidates = dueDates
-            .Select(d => { var w = Guid.NewGuid(); return Candidate(w, Now.AddDays(-40), Reviewed(w, d)); })
+            .Select(d => ReviewedCandidate(Now.AddDays(-40), d))
             .Reverse()
             .ToList();
 
@@ -187,17 +186,15 @@ public sealed class SrsRecommendationTests
         var candidates = new List<SrsCandidate>();
         for (var i = 0; i < 80; i++)
         {
-            var w = Guid.NewGuid();
-            candidates.Add(Candidate(w, Now.AddDays(-100), Reviewed(w, Now.AddDays(-80 + i))));
+            candidates.Add(ReviewedCandidate(Now.AddDays(-100), Now.AddDays(-80 + i)));
         }
         for (var i = 0; i < 20; i++)
         {
-            candidates.Add(Candidate(Guid.NewGuid(), Now.AddDays(-20 + i), null));
+            candidates.Add(NewCandidate(Now.AddDays(-20 + i)));
         }
         for (var i = 0; i < 300; i++)
         {
-            var w = Guid.NewGuid();
-            candidates.Add(Candidate(w, Now.AddDays(-100), Reviewed(w, Now.AddDays(1 + i))));
+            candidates.Add(ReviewedCandidate(Now.AddDays(-100), Now.AddDays(1 + i)));
         }
 
         var ordered = SrsRecommendation.OrderForReview(candidates, Now, 20);
@@ -214,12 +211,11 @@ public sealed class SrsRecommendationTests
         var candidates = new List<SrsCandidate>();
         for (var i = 0; i < 5; i++)
         {
-            var w = Guid.NewGuid();
-            candidates.Add(Candidate(w, Now.AddDays(-40), Reviewed(w, Now.AddDays(-5 + i))));
+            candidates.Add(ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-5 + i)));
         }
         for (var i = 0; i < 30; i++)
         {
-            candidates.Add(Candidate(Guid.NewGuid(), Now.AddDays(-30 + i), null));
+            candidates.Add(NewCandidate(Now.AddDays(-30 + i)));
         }
 
         var ordered = SrsRecommendation.OrderForReview(candidates, Now, 10);
@@ -236,12 +232,11 @@ public sealed class SrsRecommendationTests
         var candidates = new List<SrsCandidate>();
         for (var i = 0; i < 10; i++)
         {
-            var w = Guid.NewGuid();
-            candidates.Add(Candidate(w, Now.AddDays(-40), Reviewed(w, Now.AddDays(-10 + i))));
+            candidates.Add(ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-10 + i)));
         }
         for (var i = 0; i < 50; i++)
         {
-            candidates.Add(Candidate(Guid.NewGuid(), Now.AddDays(-50 + i), null));
+            candidates.Add(NewCandidate(Now.AddDays(-50 + i)));
         }
 
         var ordered = SrsRecommendation.OrderForReview(candidates, Now, 10);
@@ -254,11 +249,11 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R17_OneDueManyNew_DueThenOldestNew()
     {
-        var due = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), Now.AddDays(-2)));
-        var newOldest = Candidate(Guid.NewGuid(), Now.AddDays(-30), null);
-        var newMiddle = Candidate(Guid.NewGuid(), Now.AddDays(-20), null);
-        var newNewest1 = Candidate(Guid.NewGuid(), Now.AddDays(-10), null);
-        var newNewest2 = Candidate(Guid.NewGuid(), Now.AddDays(-5), null);
+        var due = ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-2));
+        var newOldest = NewCandidate(Now.AddDays(-30));
+        var newMiddle = NewCandidate(Now.AddDays(-20));
+        var newNewest1 = NewCandidate(Now.AddDays(-10));
+        var newNewest2 = NewCandidate(Now.AddDays(-5));
 
         var ordered = SrsRecommendation.OrderForReview(
             new[] { newNewest2, newNewest1, newMiddle, newOldest, due }, Now, 3);
@@ -266,16 +261,14 @@ public sealed class SrsRecommendationTests
         Assert.Equal(new[] { due.WordId, newOldest.WordId, newMiddle.WordId }, ordered.Select(c => c.WordId));
     }
 
-    // R18. Fragile but future word stays excluded; DueAt is authoritative.
+    // R18. A word due tomorrow stays excluded even when barely in the future.
     [Fact]
-    public void R18_FutureWordWithLowRetrievability_StillExcluded()
+    public void R18_FutureWord_StillExcluded()
     {
-        var futureWord = Guid.NewGuid();
-        var future = Candidate(futureWord, Now.AddDays(-40), Reviewed(futureWord, Now.AddDays(1)));
-        var due = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), Now.AddDays(-1)));
-        var retrievability = new Dictionary<Guid, double> { [futureWord] = 0.01 };
+        var future = ReviewedCandidate(Now.AddDays(-40), Now.AddMinutes(1));
+        var due = ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-1));
 
-        var ordered = SrsRecommendation.OrderForReview(new[] { future, due }, Now, 10, retrievability);
+        var ordered = SrsRecommendation.OrderForReview(new[] { future, due }, Now, 10);
 
         Assert.Equal(new[] { due.WordId }, ordered.Select(c => c.WordId));
     }
@@ -284,8 +277,8 @@ public sealed class SrsRecommendationTests
     [Fact]
     public void R19_ThreeMonthsOverdue_DueFirst()
     {
-        var ancient = Candidate(Guid.NewGuid(), Now.AddDays(-200), Reviewed(Guid.NewGuid(), Now.AddDays(-90)));
-        var recent = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), Now.AddDays(-1)));
+        var ancient = ReviewedCandidate(Now.AddDays(-200), Now.AddDays(-90));
+        var recent = ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-1));
 
         var ordered = SrsRecommendation.OrderForReview(new[] { recent, ancient }, Now, 10);
 
@@ -297,7 +290,7 @@ public sealed class SrsRecommendationTests
     public void R20_DueAtInJstEqualToNowUtc_IsDue()
     {
         var dueJst = new DateTimeOffset(2026, 9, 23, 9, 0, 0, TimeSpan.FromHours(9));
-        var candidate = Candidate(Guid.NewGuid(), Now.AddDays(-40), Reviewed(Guid.NewGuid(), dueJst));
+        var candidate = ReviewedCandidate(Now.AddDays(-40), dueJst);
 
         Assert.Equal(SrsRecommendationKind.Due, SrsRecommendation.Classify(candidate, Now));
     }
@@ -307,11 +300,31 @@ public sealed class SrsRecommendationTests
     public void R21_NullDueAtWithProgress_InvalidAndThrows()
     {
         var word = Guid.NewGuid();
-        var candidate = Candidate(word, Now.AddDays(-40), new WordLearningProgress(User, word, AnyState, Now.AddDays(-5), null, 2, 0));
+        var candidate = new SrsCandidate(
+            User, word, Now.AddDays(-40),
+            new WordLearningProgress(User, word, AnyState, Now.AddDays(-5), null, 2, 0));
 
         Assert.Equal(SrsRecommendationKind.Invalid, SrsRecommendation.Classify(candidate, Now));
         Assert.Throws<InvalidOperationException>(() =>
             SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
+    }
+
+    // R21b. Other incoherent progress shapes are invalid too.
+    [Fact]
+    public void R21b_IncoherentProgress_InvalidAndThrows()
+    {
+        var incoherent = new List<SrsCandidate>();
+        foreach (var progress in IncoherentProgressShapes())
+        {
+            incoherent.Add(new SrsCandidate(progress.UserId, progress.WordId, Now.AddDays(-40), progress));
+        }
+
+        Assert.All(incoherent, c => Assert.Equal(SrsRecommendationKind.Invalid, SrsRecommendation.Classify(c, Now)));
+        foreach (var candidate in incoherent)
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+                SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
+        }
     }
 
     // R22. Duplicate word rows are rejected; UNIQUE (user_id, word_id) is structural.
@@ -319,13 +332,65 @@ public sealed class SrsRecommendationTests
     public void R22_DuplicateWordId_Throws()
     {
         var word = Guid.NewGuid();
+        var progress = new WordLearningProgress(User, word, AnyState, Now.AddDays(-5), Now.AddDays(-2), 2, 0);
+        var updated = progress with { DueAt = Now.AddDays(-1) };
         var candidates = new[]
         {
-            Candidate(word, Now.AddDays(-40), Reviewed(word, Now.AddDays(-2))),
-            Candidate(word, Now.AddDays(-40), Reviewed(word, Now.AddDays(-1))),
+            new SrsCandidate(User, word, Now.AddDays(-40), progress),
+            new SrsCandidate(User, word, Now.AddDays(-40), updated),
         };
 
         Assert.Throws<InvalidOperationException>(() =>
             SrsRecommendation.OrderForReview(candidates, Now, 10));
+    }
+
+    [Fact]
+    public void ProgressForDifferentWord_IsRejected()
+    {
+        var candidate = new SrsCandidate(
+            User, Guid.NewGuid(), Now.AddDays(-40),
+            new WordLearningProgress(User, Guid.NewGuid(), AnyState, Now.AddDays(-5), Now.AddDays(-1), 2, 0));
+
+        Assert.Equal(SrsRecommendationKind.Invalid, SrsRecommendation.Classify(candidate, Now));
+        Assert.Throws<InvalidOperationException>(() =>
+            SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
+    }
+
+    [Fact]
+    public void ProgressForDifferentUser_IsRejected()
+    {
+        var word = Guid.NewGuid();
+        var candidate = new SrsCandidate(
+            User, word, Now.AddDays(-40),
+            new WordLearningProgress(Guid.NewGuid(), word, AnyState, Now.AddDays(-5), Now.AddDays(-1), 2, 0));
+
+        Assert.Equal(SrsRecommendationKind.Invalid, SrsRecommendation.Classify(candidate, Now));
+        Assert.Throws<InvalidOperationException>(() =>
+            SrsRecommendation.OrderForReview(new[] { candidate }, Now, 10));
+    }
+
+    [Fact]
+    public void CandidatesAcrossUsers_AreRejected()
+    {
+        var first = ReviewedCandidate(Now.AddDays(-40), Now.AddDays(-2));
+        var otherUser = Guid.NewGuid();
+        var otherWord = Guid.NewGuid();
+        var second = new SrsCandidate(
+            otherUser, otherWord, Now.AddDays(-40),
+            new WordLearningProgress(otherUser, otherWord, AnyState, Now.AddDays(-5), Now.AddDays(-1), 2, 0));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            SrsRecommendation.OrderForReview(new[] { first, second }, Now, 10));
+    }
+
+    private static IEnumerable<WordLearningProgress> IncoherentProgressShapes()
+    {
+        var word = Guid.NewGuid();
+        // Missing memory state.
+        yield return new WordLearningProgress(User, word, null, Now.AddDays(-5), Now.AddDays(-1), 2, 0);
+        // Missing last-reviewed timestamp.
+        yield return new WordLearningProgress(User, word, AnyState, null, Now.AddDays(-1), 2, 0);
+        // Zero reviews cannot own a due date.
+        yield return new WordLearningProgress(User, word, AnyState, Now.AddDays(-5), Now.AddDays(-1), 0, 0);
     }
 }

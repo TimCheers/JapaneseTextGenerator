@@ -6,7 +6,7 @@ using Xunit;
 namespace KotobaApi.Tests;
 
 /// <summary>
-/// Scheduling cases S1-S21 from docs/tests.md.
+/// Scheduling cases S1-S21 from docs/srs-scheduling-and-recommendation.md.
 /// Asserts required relationships, not invented day counts.
 /// Fixed clock: now = 2026-09-23 00:00 UTC, desired retention 0.90 (defaults).
 /// </summary>

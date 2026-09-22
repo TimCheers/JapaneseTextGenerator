@@ -4,7 +4,7 @@ namespace KotobaApi.Srs.Learning;
 
 /// <summary>
 /// Classification of a single word for review recommendation.
-/// See docs/tests.md section B.
+/// See docs/srs-scheduling-and-recommendation.md section B.
 /// </summary>
 public enum SrsRecommendationKind
 {
@@ -16,16 +16,18 @@ public enum SrsRecommendationKind
 
 /// <summary>
 /// One word considered for recommendation, with its current progress (if any).
+/// When progress is present it must belong to the same user and word.
 /// NEW ordering uses <see cref="CreatedAt"/>; DUE ordering uses progress DueAt.
 /// </summary>
 public sealed record SrsCandidate(
+    Guid UserId,
     Guid WordId,
     DateTimeOffset CreatedAt,
     WordLearningProgress? Progress);
 
 /// <summary>
-/// Pure MVP recommender matching docs/tests.md section D:
-/// DUE (DueAt ASC, retrievability ASC, WordId ASC) then NEW (CreatedAt ASC, WordId ASC),
+/// Pure MVP recommender matching docs/srs-scheduling-and-recommendation.md section D:
+/// DUE (DueAt ASC, WordId ASC) then NEW (CreatedAt ASC, WordId ASC),
 /// truncated to limit. NOT_DUE excluded. Invalid progress fails fast.
 /// </summary>
 public static class SrsRecommendation
@@ -39,25 +41,20 @@ public static class SrsRecommendation
             return SrsRecommendationKind.New;
         }
 
-        if (candidate.Progress.DueAt is null)
+        if (!IsCoherentProgress(candidate))
         {
             return SrsRecommendationKind.Invalid;
         }
 
-        return candidate.Progress.DueAt.Value <= now
+        return candidate.Progress.DueAt!.Value <= now
             ? SrsRecommendationKind.Due
             : SrsRecommendationKind.NotDue;
     }
 
-    /// <param name="retrievabilityByWord">
-    /// Optional predicted retrievability at <paramref name="now"/>, keyed by WordId.
-    /// Used only to break ties when DueAt values are equal (lower = harder to recall = first).
-    /// </param>
     public static IReadOnlyList<SrsCandidate> OrderForReview(
         IEnumerable<SrsCandidate> candidates,
         DateTimeOffset now,
-        int limit,
-        IReadOnlyDictionary<Guid, double>? retrievabilityByWord = null)
+        int limit)
     {
         ArgumentNullException.ThrowIfNull(candidates);
 
@@ -68,11 +65,16 @@ public static class SrsRecommendation
 
         var list = candidates.ToList();
 
-        var duplicates = list.GroupBy(c => c.WordId).FirstOrDefault(g => g.Count() > 1);
+        if (list.Select(c => c.UserId).Distinct().Count() > 1)
+        {
+            throw new InvalidOperationException("Recommendation candidates must belong to a single user.");
+        }
+
+        var duplicates = list.GroupBy(c => (c.UserId, c.WordId)).FirstOrDefault(g => g.Count() > 1);
         if (duplicates is not null)
         {
             throw new InvalidOperationException(
-                $"Duplicate progress for word {duplicates.Key}. Expected UNIQUE (user_id, word_id).");
+                $"Duplicate progress for user {duplicates.Key.UserId}, word {duplicates.Key.WordId}. Expected UNIQUE (user_id, word_id).");
         }
 
         foreach (var candidate in list)
@@ -80,14 +82,13 @@ public static class SrsRecommendation
             if (Classify(candidate, now) == SrsRecommendationKind.Invalid)
             {
                 throw new InvalidOperationException(
-                    $"Word {candidate.WordId} has progress with null DueAt. Data integrity error.");
+                    $"Word {candidate.WordId} has incoherent progress. Data integrity error.");
             }
         }
 
         var due = list
             .Where(c => Classify(c, now) == SrsRecommendationKind.Due)
             .OrderBy(c => c.Progress!.DueAt!.Value)
-            .ThenBy(c => retrievabilityByWord != null && retrievabilityByWord.TryGetValue(c.WordId, out var r) ? r : double.MaxValue)
             .ThenBy(c => c.WordId);
 
         var fresh = list
@@ -96,5 +97,26 @@ public static class SrsRecommendation
             .ThenBy(c => c.WordId);
 
         return due.Concat(fresh).Take(limit).ToList();
+    }
+
+    /// <summary>
+    /// A stored progress row is coherent only if it carries a complete scheduling
+    /// state for the same user and word. <see cref="InMemoryLearningEngine"/> never
+    /// produces anything else; this guards the future database-backed loader.
+    /// </summary>
+    private static bool IsCoherentProgress(SrsCandidate candidate)
+    {
+        var progress = candidate.Progress;
+        if (progress is null)
+        {
+            return true;
+        }
+
+        return progress.UserId == candidate.UserId
+            && progress.WordId == candidate.WordId
+            && progress.MemoryState is not null
+            && progress.LastReviewedAt is not null
+            && progress.DueAt is not null
+            && progress.ReviewCount > 0;
     }
 }

@@ -6,7 +6,7 @@ using Xunit;
 namespace KotobaApi.Tests;
 
 /// <summary>
-/// Idempotency cases I1-I3 from docs/tests.md, plus the reading-gate behavior
+/// Idempotency cases I1-I3 from docs/srs-scheduling-and-recommendation.md, plus the reading-gate behavior
 /// the engine depends on (engaged reading = Good, reveal = Hard, ignored gates change nothing).
 /// </summary>
 public sealed class SrsIdempotencyTests
