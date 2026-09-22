@@ -11,6 +11,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
+builder.Services.AddScoped<IWordService, WordService>();
 
 
 builder.Services.AddCors(options =>
