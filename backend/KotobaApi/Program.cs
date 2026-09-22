@@ -1,5 +1,8 @@
 using KotobaApi.Data;
 using KotobaApi.Services;
+using KotobaApi.Srs.Learning;
+using KotobaApi.Srs.Reading;
+using KotobaApi.Srs.Scheduling;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -11,6 +14,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
+
+// FSRS-7 scheduler (stateless) + in-memory learning engine (experimental store).
+// Engine must stay singleton while in-memory so progress survives across requests.
+// Data is reset on restart by design; replace with persistent store later without touching the scheduler.
+builder.Services.AddSingleton<IFsrsScheduler, Fsrs7Scheduler>();
+builder.Services.AddSingleton<ReadingEngagementPolicy>();
+builder.Services.AddSingleton<InMemoryLearningEngine>();
 
 
 builder.Services.AddCors(options =>
