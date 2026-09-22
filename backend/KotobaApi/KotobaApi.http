@@ -1,0 +1,6 @@
+@KotobaApi_HostAddress = http://localhost:5166
+
+GET {{KotobaApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
