@@ -7,9 +7,9 @@ public sealed record Fsrs7Options
 
     internal void Validate()
     {
-        if (!float.IsFinite(DesiredRetention) || DesiredRetention is <= 0.0f or >= 1.0f)
+        if (!float.IsFinite(DesiredRetention))
         {
-            throw new ArgumentOutOfRangeException(nameof(DesiredRetention), "Desired retention must be between 0 and 1.");
+            throw new ArgumentOutOfRangeException(nameof(DesiredRetention), "Desired retention must be finite.");
         }
 
         ArgumentNullException.ThrowIfNull(Parameters);

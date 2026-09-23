@@ -35,7 +35,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
         options ??= new Fsrs7Options();
         options.Validate();
         _w = options.Parameters;
-        _defaultDesiredRetention = options.DesiredRetention;
+        _defaultDesiredRetention = Math.Clamp(options.DesiredRetention, DesiredRetentionMin, DesiredRetentionMax);
     }
 
     public FsrsScheduleResult Schedule(FsrsScheduleRequest request)
@@ -76,7 +76,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
             }
 
             elapsedDays = (float)elapsed.TotalDays;
-            var previousState = ValidateState(previousStateOpt!.Value);
+            var previousState = ClampStateForTransition(previousStateOpt!.Value);
             retrievabilityBefore = ForgettingCurve(elapsedDays, previousState);
             nextState = NextState(previousState, elapsedDays, rating, retrievabilityBefore.Value);
         }
@@ -108,7 +108,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
             throw new ArgumentOutOfRangeException(nameof(elapsed));
         }
 
-        return ForgettingCurve((float)elapsed.TotalDays, ValidateState(state));
+        return ForgettingCurve((float)elapsed.TotalDays, EnsureFiniteState(state));
     }
 
     public float IntervalAtRetention(Fsrs7MemoryState state, float desiredRetention)
@@ -118,7 +118,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
             throw new ArgumentOutOfRangeException(nameof(desiredRetention), "Desired retention must be finite.");
         }
 
-        state = ValidateState(state);
+        state = ClampStateForTransition(state);
 
         var target = Math.Clamp(desiredRetention, DesiredRetentionMin, DesiredRetentionMax);
         if (target >= DesiredRetentionMax)
@@ -160,7 +160,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
         var slow = Math.Clamp(_w[rating - 1], StabilityMin, StabilityMax);
         var fast = Math.Clamp(0.8f * slow, StabilityMin, StabilityMax);
         var difficulty = Math.Clamp(InitialDifficulty(rating), DifficultyMin, DifficultyMax);
-        return ValidateState(new Fsrs7MemoryState(slow, fast, difficulty));
+        return ClampStateForTransition(new Fsrs7MemoryState(slow, fast, difficulty));
     }
 
     private Fsrs7MemoryState NextState(
@@ -180,7 +180,7 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
 
         fast = Math.Clamp(fast, StabilityMin, StabilityMax);
         var difficulty = NextDifficulty(state.Difficulty, rating, retrievability);
-        return ValidateState(new Fsrs7MemoryState(slow, fast, difficulty));
+        return ClampStateForTransition(new Fsrs7MemoryState(slow, fast, difficulty));
     }
 
     private float StabilityForSet(
@@ -313,21 +313,23 @@ public sealed class Fsrs7Scheduler : IFsrsScheduler
         return Math.Clamp((low + high) * 0.5f, 0.0f, StabilityMax);
     }
 
-    private static Fsrs7MemoryState ValidateState(Fsrs7MemoryState state)
+    private static Fsrs7MemoryState EnsureFiniteState(Fsrs7MemoryState state)
     {
         if (!float.IsFinite(state.Stability) || !float.IsFinite(state.FastStability) || !float.IsFinite(state.Difficulty))
         {
             throw new ArgumentOutOfRangeException(nameof(state), "Memory state values must be finite.");
         }
 
-        if (state.Stability is < StabilityMin or > StabilityMax
-            || state.FastStability is < StabilityMin or > StabilityMax
-            || state.Difficulty is < DifficultyMin or > DifficultyMax)
-        {
-            throw new ArgumentOutOfRangeException(nameof(state), "Memory state is outside FSRS-7 runtime bounds.");
-        }
-
         return state;
+    }
+
+    private static Fsrs7MemoryState ClampStateForTransition(Fsrs7MemoryState state)
+    {
+        state = EnsureFiniteState(state);
+        return new Fsrs7MemoryState(
+            Math.Clamp(state.Stability, StabilityMin, StabilityMax),
+            Math.Clamp(state.FastStability, StabilityMin, StabilityMax),
+            Math.Clamp(state.Difficulty, DifficultyMin, DifficultyMax));
     }
 
     private static DateTimeOffset AddDaysSafely(DateTimeOffset start, float days)

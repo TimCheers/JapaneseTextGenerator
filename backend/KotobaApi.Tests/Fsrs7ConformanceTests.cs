@@ -66,6 +66,78 @@ public sealed class Fsrs7ConformanceTests
     }
 
     [Fact]
+    public void Schedule_FiniteOutOfRangeMemoryState_IsClampedToReferenceBounds()
+    {
+        var t0 = new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero);
+        var states = new[]
+        {
+            (new Fsrs7MemoryState(0.0f, 0.0f, 0.0f), new Fsrs7MemoryState(0.0001f, 0.0001f, 1.0f)),
+            (new Fsrs7MemoryState(40_000.0f, 40_000.0f, 11.0f), new Fsrs7MemoryState(36_500.0f, 36_500.0f, 10.0f)),
+        };
+
+        foreach (var (outOfRange, clamped) in states)
+        {
+            var actual = _scheduler.Schedule(new FsrsScheduleRequest(outOfRange, t0, t0.AddDays(1), FsrsRating.Good));
+            var expected = _scheduler.Schedule(new FsrsScheduleRequest(clamped, t0, t0.AddDays(1), FsrsRating.Good));
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    [Fact]
+    public void IntervalAtRetention_FiniteOutOfRangeState_IsClampedToReferenceBounds()
+    {
+        var lowerBound = new Fsrs7MemoryState(0.0001f, 0.0001f, 1.0f);
+        var upperBound = new Fsrs7MemoryState(36_500.0f, 36_500.0f, 10.0f);
+
+        Assert.Equal(
+            _scheduler.IntervalAtRetention(lowerBound, 0.90f),
+            _scheduler.IntervalAtRetention(new Fsrs7MemoryState(0.0f, 0.0f, 0.0f), 0.90f));
+        Assert.Equal(
+            _scheduler.IntervalAtRetention(upperBound, 0.90f),
+            _scheduler.IntervalAtRetention(new Fsrs7MemoryState(40_000.0f, 40_000.0f, 11.0f), 0.90f));
+    }
+
+    [Fact]
+    public void Retrievability_FiniteLowMemoryState_UsesReferenceLowerBounds()
+    {
+        var lowerBound = new Fsrs7MemoryState(0.0001f, 0.0001f, 1.0f);
+        var outOfRange = new Fsrs7MemoryState(0.0f, 0.0f, 0.0f);
+
+        Assert.Equal(
+            _scheduler.Retrievability(lowerBound, TimeSpan.FromDays(10)),
+            _scheduler.Retrievability(outOfRange, TimeSpan.FromDays(10)));
+    }
+
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.PositiveInfinity)]
+    [InlineData(float.NegativeInfinity)]
+    public void StateEntryPoints_NonFiniteMemoryState_Throws(float nonFinite)
+    {
+        var t0 = new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero);
+        var state = new Fsrs7MemoryState(nonFinite, 1.0f, 5.0f);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            _scheduler.Schedule(new FsrsScheduleRequest(state, t0, t0.AddDays(1), FsrsRating.Good)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _scheduler.IntervalAtRetention(state, 0.90f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _scheduler.Retrievability(state, TimeSpan.FromDays(1)));
+    }
+
+    [Theory]
+    [InlineData(0.0f, 0.0001f)]
+    [InlineData(1.0f, 0.9999f)]
+    public void ConfiguredDesiredRetention_IsClampedToReferenceBounds(float configured, float expected)
+    {
+        var t0 = new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero);
+        var scheduler = new Fsrs7Scheduler(new Fsrs7Options { DesiredRetention = configured });
+
+        var result = scheduler.Schedule(new FsrsScheduleRequest(null, null, t0, FsrsRating.Good));
+
+        Assert.Equal(expected, result.DesiredRetention);
+    }
+
+    [Fact]
     public void MixedSameDaySequence_MatchesUpstream()
     {
         var t0 = new DateTimeOffset(2026, 9, 22, 0, 0, 0, TimeSpan.Zero);
