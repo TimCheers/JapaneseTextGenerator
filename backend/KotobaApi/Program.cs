@@ -14,6 +14,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
+builder.Services.AddScoped<IWordService, WordService>();
+builder.Services.AddScoped<IWordProgressService, WordProgressService>();
+builder.Services.AddScoped<IGenerationRequestService, GenerationRequestService>();
+builder.Services.AddScoped<IGeneratedTextService, GeneratedTextService>();
+builder.Services.AddScoped<IComprehensionQuestionService, ComprehensionQuestionService>();
+builder.Services.AddScoped<IPracticeAttemptService, PracticeAttemptService>();
+builder.Services.AddScoped<IUserAnswerService, UserAnswerService>();
 
 // FSRS-7 scheduler (stateless) + in-memory learning engine (experimental store).
 // Engine must stay singleton while in-memory so progress survives across requests.
@@ -30,6 +37,10 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+        .UseSnakeCaseNamingConvention());
 
 var app = builder.Build();
 
