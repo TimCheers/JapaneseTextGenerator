@@ -281,8 +281,8 @@ public sealed class SrsSchedulingTests
         var firstAt = Now.AddDays(-6);
         var prior = scheduler.Schedule(new FsrsScheduleRequest(null, null, firstAt, FsrsRating.Good));
 
-        var at90 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.90));
-        var at95 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.95));
+        var at90 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.90f));
+        var at95 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.95f));
 
         Assert.True(at95.DueAt < at90.DueAt);
     }
@@ -295,8 +295,8 @@ public sealed class SrsSchedulingTests
         var firstAt = Now.AddDays(-6);
         var prior = scheduler.Schedule(new FsrsScheduleRequest(null, null, firstAt, FsrsRating.Good));
 
-        var at85 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.85));
-        var at90 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.90));
+        var at85 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.85f));
+        var at90 = scheduler.Schedule(new FsrsScheduleRequest(prior.State, firstAt, Now, FsrsRating.Good, 0.90f));
 
         Assert.True(at85.DueAt > at90.DueAt);
     }
@@ -347,7 +347,7 @@ public sealed class SrsSchedulingTests
 
         var repeat = scheduler.Schedule(new FsrsScheduleRequest(prior.State, Now, Now, FsrsRating.Good));
 
-        Assert.Equal(0.0, repeat.ElapsedDays);
+        Assert.Equal(0f, repeat.ElapsedDays);
         Assert.True(repeat.DueAt >= Now);
     }
 
@@ -363,10 +363,10 @@ public sealed class SrsSchedulingTests
         var result = engine.ApplyReview(new ReviewCommand(NewId(), user, word, Now, FsrsRating.Good, ReviewSource.ExplicitRating));
 
         var state = result.Event.StateAfterReview;
-        Assert.True(double.IsFinite(state.Stability));
-        Assert.True(double.IsFinite(state.FastStability));
-        Assert.True(double.IsFinite(state.Difficulty));
-        Assert.True(double.IsFinite(result.Event.ScheduledIntervalDays));
+        Assert.True(float.IsFinite(state.Stability));
+        Assert.True(float.IsFinite(state.FastStability));
+        Assert.True(float.IsFinite(state.Difficulty));
+        Assert.True(float.IsFinite(result.Event.ScheduledIntervalDays));
         Assert.True(result.ProgressAfter.DueAt > Now);
     }
 
@@ -384,10 +384,43 @@ public sealed class SrsSchedulingTests
         {
             var result = engine.ApplyReview(new ReviewCommand(NewId(), user, word, at, rating, ReviewSource.ExplicitRating));
             var state = result.Event.StateAfterReview;
-            Assert.InRange(state.Stability, 0.0001, 36500.0);
-            Assert.InRange(state.FastStability, 0.0001, 36500.0);
-            Assert.InRange(state.Difficulty, 1.0, 10.0);
+            Assert.InRange(state.Stability, 0.0001f, 36500.0f);
+            Assert.InRange(state.FastStability, 0.0001f, 36500.0f);
+            Assert.InRange(state.Difficulty, 1.0f, 10.0f);
             at = at.AddDays(1);
         }
+    }
+
+    [Fact]
+    public void Scheduler_PreviousStateRequiresLastReviewedAt()
+    {
+        var scheduler = new Fsrs7Scheduler();
+        var request = new FsrsScheduleRequest(
+            new Fsrs7MemoryState(1f, 0.8f, 5f),
+            null,
+            DateTimeOffset.UtcNow,
+            FsrsRating.Good);
+
+        Assert.Throws<ArgumentException>(() => scheduler.Schedule(request));
+    }
+
+    [Fact]
+    public void Engine_SameWordAcrossUsers_KeepsSeparateProgress()
+    {
+        var engine = NewEngine();
+        var word = NewId();
+        var alice = NewId();
+        var bob = NewId();
+
+        var aliceFirst = engine.ApplyReview(new ReviewCommand(NewId(), alice, word, Now.AddDays(-6), FsrsRating.Good, ReviewSource.ExplicitRating));
+        engine.ApplyReview(new ReviewCommand(NewId(), bob, word, Now.AddDays(-1), FsrsRating.Again, ReviewSource.ExplicitRating));
+        var aliceSecond = engine.ApplyReview(new ReviewCommand(NewId(), alice, word, Now, FsrsRating.Good, ReviewSource.ExplicitRating));
+
+        Assert.Equal(2, engine.GetProgress(alice, word)!.ReviewCount);
+        Assert.Equal(1, engine.GetProgress(bob, word)!.ReviewCount);
+        Assert.Equal(0, engine.GetProgress(bob, word)!.LapseCount);
+        Assert.Equal(2, engine.GetHistory(alice, word).Count);
+        Assert.Single(engine.GetHistory(bob, word));
+        Assert.NotEqual(aliceSecond.ProgressAfter.DueAt, engine.GetProgress(bob, word)!.DueAt);
     }
 }

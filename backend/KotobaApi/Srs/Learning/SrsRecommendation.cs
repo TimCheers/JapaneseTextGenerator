@@ -115,8 +115,21 @@ public static class SrsRecommendation
         return progress.UserId == candidate.UserId
             && progress.WordId == candidate.WordId
             && progress.MemoryState is not null
+            && IsWithinSchedulerBounds(progress.MemoryState.Value)
             && progress.LastReviewedAt is not null
             && progress.DueAt is not null
             && progress.ReviewCount > 0;
     }
+
+    /// <summary>
+    /// Bounds mirror <see cref="Scheduling.Fsrs7Scheduler"/> runtime validation
+    /// (stability 0.0001..36500 days, difficulty 1..10, all finite).
+    /// </summary>
+    private static bool IsWithinSchedulerBounds(Fsrs7MemoryState state) =>
+        float.IsFinite(state.Stability)
+        && float.IsFinite(state.FastStability)
+        && float.IsFinite(state.Difficulty)
+        && state.Stability is >= 0.0001f and <= 36_500.0f
+        && state.FastStability is >= 0.0001f and <= 36_500.0f
+        && state.Difficulty is >= 1.0f and <= 10.0f;
 }

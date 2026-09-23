@@ -61,6 +61,47 @@ public sealed class SrsIdempotencyTests
     }
 
     [Fact]
+    public void SameEventIdDifferentUser_Rejected()
+    {
+        var engine = new InMemoryLearningEngine();
+        var word = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        engine.ApplyReview(new ReviewCommand(eventId, Guid.NewGuid(), word, At, FsrsRating.Good, ReviewSource.ExplicitRating));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            engine.ApplyReview(new ReviewCommand(eventId, Guid.NewGuid(), word, At, FsrsRating.Good, ReviewSource.ExplicitRating)));
+    }
+
+    [Fact]
+    public void SameEventIdDifferentSource_Rejected()
+    {
+        var engine = new InMemoryLearningEngine();
+        var user = Guid.NewGuid();
+        var word = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        engine.ApplyReview(new ReviewCommand(eventId, user, word, At, FsrsRating.Good, ReviewSource.ExplicitRating));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            engine.ApplyReview(new ReviewCommand(eventId, user, word, At, FsrsRating.Good, ReviewSource.ContextualReading)));
+    }
+
+    [Fact]
+    public void SameEventIdDifferentTimestamp_Rejected()
+    {
+        var engine = new InMemoryLearningEngine();
+        var user = Guid.NewGuid();
+        var word = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        engine.ApplyReview(new ReviewCommand(eventId, user, word, At, FsrsRating.Good, ReviewSource.ExplicitRating));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            engine.ApplyReview(new ReviewCommand(eventId, user, word, At.AddMinutes(5), FsrsRating.Good, ReviewSource.ExplicitRating)));
+    }
+
+    [Fact]
     public void Reading_EngagedReading_AppliesGoodWithSource()
     {
         var engine = new InMemoryLearningEngine();

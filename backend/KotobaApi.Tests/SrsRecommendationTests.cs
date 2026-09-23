@@ -13,7 +13,7 @@ public sealed class SrsRecommendationTests
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 23, 0, 0, 0, TimeSpan.Zero);
     private static readonly Guid User = Guid.NewGuid();
-    private static readonly Fsrs7MemoryState AnyState = new(5.0, 4.0, 5.0);
+    private static readonly Fsrs7MemoryState AnyState = new(5.0f, 4.0f, 5.0f);
 
     private static SrsCandidate NewCandidate(DateTimeOffset createdAt) =>
         new(User, Guid.NewGuid(), createdAt, null);
@@ -390,6 +390,8 @@ public sealed class SrsRecommendationTests
         yield return new WordLearningProgress(User, word, null, Now.AddDays(-5), Now.AddDays(-1), 2, 0);
         // Missing last-reviewed timestamp.
         yield return new WordLearningProgress(User, word, AnyState, null, Now.AddDays(-1), 2, 0);
+        // Zero/default memory state is outside scheduler bounds.
+        yield return new WordLearningProgress(User, word, default(Fsrs7MemoryState), Now.AddDays(-5), Now.AddDays(-1), 2, 0);
         // Zero reviews cannot own a due date.
         yield return new WordLearningProgress(User, word, AnyState, Now.AddDays(-5), Now.AddDays(-1), 0, 0);
     }

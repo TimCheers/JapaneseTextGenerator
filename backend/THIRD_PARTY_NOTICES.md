@@ -5,10 +5,11 @@ constants from the Open Spaced Repetition FSRS projects. The ported code lives
 under `backend/KotobaApi/Srs/` (notably `Scheduling/Fsrs7Scheduler.cs` and
 `Scheduling/Fsrs7Parameters.cs`).
 
-Reference projects:
+Reference projects (pinned upstream commit `c137ee6e096f9217632397a8fb2bdb6f6e1b92ae`):
 
 - https://github.com/open-spaced-repetition/fsrs-rs
-  (`src/model_v7.rs`, `src/inference_v7.rs`)
+  (`src/model.rs`, `src/model_v7.rs`, `src/inference_v7.rs`,
+  `src/parameter_clipper.rs`, `src/parameter_clipper_v7.rs`)
 - https://github.com/open-spaced-repetition/srs-benchmark
   (`models/fsrs_v7.py`)
 
