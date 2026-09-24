@@ -1,0 +1,18 @@
+.text-card {
+  height: 100dvh;
+  width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  scroll-snap-align: start;
+}
+
+.text-card__content {
+  max-width: 640px;
+  font-size: 1.5rem;
+  line-height: 2;
+  color: #f2f2f2;
+}
