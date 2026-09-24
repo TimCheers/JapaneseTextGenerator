@@ -3,5 +3,6 @@
 public interface IUserService
 {
     Task<UserDto?> GetByIdAsync(Guid id);
-    Task<UserDto> RegisterAsync(RegisterUserDto dto);
+    Task<AuthResponseDto> RegisterAsync(RegisterUserDto dto);
+    Task<AuthResponseDto?> LoginAsync(LoginDto dto);
 }

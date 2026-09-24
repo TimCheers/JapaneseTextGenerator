@@ -11,10 +11,10 @@ public class UsersController : ControllerBase
     public UsersController(IUserService service) => _service = service;
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Register(RegisterUserDto dto)
+    public async Task<ActionResult<AuthResponseDto>> Register(RegisterUserDto dto)
     {
-        var user = await _service.RegisterAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+        var authResponse = await _service.RegisterAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = authResponse.User.Id }, authResponse);
     }
 
     [HttpGet("{id}")]
