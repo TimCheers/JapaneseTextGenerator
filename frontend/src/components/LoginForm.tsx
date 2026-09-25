@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { LoginRequest } from "../api/auth";
 import { loginUser } from "../api/auth";
+import "../styles/AuthForm.css";
 
 export function LoginForm() {
     const [form, setForm] = useState<LoginRequest>({
@@ -26,7 +27,7 @@ export function LoginForm() {
             localStorage.setItem("authToken", result.authToken);
             setSuccess(true);
         } catch (err) {
-            setError("Что-то пошло не так");
+            setError("Something went wrong");
         } finally {
             setLoading(false);
         }
@@ -35,14 +36,14 @@ export function LoginForm() {
     return (
         <div>
             {!success &&
-                <form onSubmit={handleSubmit}>
+                <form className="auth-form" onSubmit={handleSubmit}>
                     <input placeholder="email" name="email" value={form.email} onChange={handleChange} />
                     <input placeholder="password" name="password" type="password" value={form.password} onChange={handleChange} />
-                    <button type="submit">Логин</button>
+                    <button type="submit">Login</button>
                     {error && <p>{error}</p>}
                 </form>
             }
-            {success && <p>Авторизация прошла успешно!</p>}
+            {success && <p>You have been successfully logged in!</p>}
         </div>
 
     );
