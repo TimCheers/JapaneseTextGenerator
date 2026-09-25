@@ -16,3 +16,19 @@
 .header a:hover {
   color: var(--color-primary);
 }
+
+.header-logout {
+  margin-left: auto;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.header-logout:hover {
+  background: var(--color-primary-hover);
+}
