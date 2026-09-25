@@ -29,7 +29,7 @@ export function RegisterForm() {
 
         try {
             const result = await registerUser(form);
-            login(result.authToken);
+            login(result.authToken, result.user);
             setSuccess(true);
         } catch (err) {
             setError("Something went wrong");

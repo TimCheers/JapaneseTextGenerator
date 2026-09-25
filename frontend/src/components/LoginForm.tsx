@@ -27,7 +27,7 @@ export function LoginForm() {
 
         try {
             const result = await loginUser(form);
-            login(result.authToken);
+            login(result.authToken, result.user);
             setSuccess(true);
         } catch (err) {
             setError("Something went wrong");
