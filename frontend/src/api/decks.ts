@@ -15,5 +15,5 @@ export async function getDecks(userId: string): Promise<Deck[]> {
     throw new Error(`Failed to load decks: ${response.status}`);
   }
 
-  return response.json() as Promise<Deck[]>;
+  return response.json();
 }
