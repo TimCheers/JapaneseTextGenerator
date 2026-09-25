@@ -6,8 +6,9 @@ import { ProfilePage } from "./pages/ProfilePage"
 import { RegisterPage } from "./pages/RegisterPage"
 import { Layout } from "./components/Layout"
 
-
 function App() {
+
+
   return (
     <div>
       <Routes>

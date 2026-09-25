@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import type { RegisterRequest } from "../api/auth";
 import { registerUser } from "../api/auth";
+import { AuthContext } from "../context/AuthContext";
 import "../styles/AuthForm.css";
 
 export function RegisterForm() {
@@ -14,6 +15,8 @@ export function RegisterForm() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    const { login } = useContext(AuthContext);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setForm({ ...form, [name]: value });
@@ -26,7 +29,7 @@ export function RegisterForm() {
 
         try {
             const result = await registerUser(form);
-            localStorage.setItem("authToken", result.authToken);
+            login(result.authToken);
             setSuccess(true);
         } catch (err) {
             setError("Something went wrong");
