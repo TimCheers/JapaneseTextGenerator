@@ -7,4 +7,4 @@ public record GenerationRequestDto(
     DateTimeOffset? CompletedAt,
     List<Guid> WordIds);
 
-public record CreateGenerationRequestDto(string? PromptParams, List<Guid> WordIds);
+public record CreateGenerationRequestDto(string? PromptParams); // List<Guid> WordIds
