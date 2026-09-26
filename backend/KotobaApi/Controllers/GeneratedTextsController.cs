@@ -16,11 +16,15 @@ public class GeneratedTextsController : ControllerBase
         var result = await _service.GetByIdAsync(id, userId);
         return result is null ? NotFound() : Ok(result);
     }
-    
+
     [HttpGet("by-request/{generationRequestId}")]
     public async Task<ActionResult<GeneratedTextDto>> GetByRequest(Guid userId, Guid generationRequestId)
     {
         var result = await _service.GetByGenerationRequestIdAsync(generationRequestId, userId);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [HttpGet]
+    public async Task<ActionResult<List<GeneratedTextDto>>> GetAll(Guid userId) =>
+        Ok(await _service.GetAllForUserAsync(userId));
 }

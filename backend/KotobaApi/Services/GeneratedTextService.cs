@@ -27,4 +27,17 @@ public class GeneratedTextService : IGeneratedTextService
 
         return text is null ? null : new GeneratedTextDto(text.Id, text.GenerationRequestId, text.Content, text.CreatedAt);
     }
+
+    public async Task<List<GeneratedTextDto>> GetAllForUserAsync(Guid userId)
+    {
+        var text = await _db.GeneratedTexts
+            .AsNoTracking()
+            .Include(t => t.GenerationRequest)
+            .Where(t => t.GenerationRequest.UserId == userId)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => new GeneratedTextDto(t.Id, t.GenerationRequestId, t.Content, t.CreatedAt))
+            .ToListAsync();
+
+        return text;
+    }
 }
