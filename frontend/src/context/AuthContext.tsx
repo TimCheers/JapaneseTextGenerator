@@ -14,16 +14,21 @@ export const AuthContext = createContext<AuthContextType>({ token: null, login: 
 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<User | null>(() => {
+        const raw = localStorage.getItem("authUser");
+        return raw ? JSON.parse(raw) : null;
+    });
     const [token, setToken] = useState<string | null>(() => localStorage.getItem("authToken"));
     function login(newToken: string, newUser: User) {
         localStorage.setItem("authToken", newToken);
+        localStorage.setItem("authUser", JSON.stringify(newUser));
         setToken(newToken);
         setUser(newUser);
     }
     function logout() {
         localStorage.removeItem("authToken");
+        localStorage.removeItem("authUser");
         setToken(null);
     }
-    return <AuthContext.Provider value={{ token, login, logout,  user}}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ token, login, logout, user }}>{children}</AuthContext.Provider>;
 }
