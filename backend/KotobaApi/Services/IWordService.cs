@@ -1,4 +1,6 @@
-﻿namespace KotobaApi.Services;
+﻿using KotobaApi.Models;
+
+namespace KotobaApi.Services;
 
 public interface IWordService
 {
@@ -7,4 +9,6 @@ public interface IWordService
     Task<WordDto> CreateAsync(Guid deckId, CreateWordDto dto);
     Task<bool> UpdateAsync(Guid deckId, Guid id, UpdateWordDto dto);
     Task<bool> DeleteAsync(Guid deckId, Guid id);
+    Task<List<WordDto>> ImportFromExcelAsync(Guid deckId, Stream fileStream);
+    Task<List<Word>> GetAllForUserAsync(Guid userId);
 }

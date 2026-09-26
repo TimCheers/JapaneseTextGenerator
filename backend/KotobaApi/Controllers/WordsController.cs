@@ -35,4 +35,11 @@ public class WordsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid deckId, Guid id) =>
         await _service.DeleteAsync(deckId, id) ? NoContent() : NotFound();
+    
+    [HttpPost("import")]
+    public async Task<ActionResult<List<WordDto>>> Import(Guid deckId, IFormFile file)
+    {
+        var words = await _service.ImportFromExcelAsync(deckId, file.OpenReadStream());
+        return Ok(words);
+    }
 }

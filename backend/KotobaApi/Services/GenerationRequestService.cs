@@ -7,7 +7,16 @@ namespace KotobaApi.Services;
 public class GenerationRequestService : IGenerationRequestService
 {
     private readonly AppDbContext _db;
-    public GenerationRequestService(AppDbContext db) => _db = db;
+    private readonly IWordService _wordService;
+    private readonly IAiTextGenerationService _aiTextGenerationService;
+
+    public GenerationRequestService(AppDbContext db, IWordService wordService,
+        IAiTextGenerationService aiTextGenerationService)
+    {
+        _db = db;
+        _wordService = wordService;
+        _aiTextGenerationService = aiTextGenerationService;
+    }
 
     public async Task<GenerationRequestDto?> GetByIdAsync(Guid id, Guid userId)
     {
@@ -33,6 +42,7 @@ public class GenerationRequestService : IGenerationRequestService
 
     public async Task<GenerationRequestDto> CreateAsync(Guid userId, CreateGenerationRequestDto dto)
     {
+        var words = await _wordService.GetAllForUserAsync(userId);
         var request = new GenerationRequest
         {
             Id = Guid.NewGuid(),
@@ -40,13 +50,33 @@ public class GenerationRequestService : IGenerationRequestService
             Status = GenerationStatus.Pending,
             PromptParams = dto.PromptParams,
             CreatedAt = DateTimeOffset.UtcNow,
-            Words = dto.WordIds.Select(wordId => new GenerationRequestWord
-            {
-                Id = Guid.NewGuid(),
-                WordId = wordId
-            }).ToList()
+            Words = words.Select(w => new GenerationRequestWord
+                {
+                    Id = Guid.NewGuid(),
+                    WordId = w.Id
+                }
+            ).ToList()
         };
 
+        try
+        {
+            string content =  await _aiTextGenerationService.GenerateTextAsync(words);
+            request.Status = GenerationStatus.Completed;
+            request.CompletedAt = DateTimeOffset.UtcNow;
+            _db.GeneratedTexts.Add(new GeneratedText
+            {
+                Id = Guid.NewGuid(), GenerationRequestId = request.Id, Content = content,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
+        }
+        catch (Exception e)
+        {
+            request.Status = GenerationStatus.Failed;
+            request.CompletedAt = DateTimeOffset.UtcNow;
+            request.ErrorMessage = e.Message;
+        }
+        
         _db.GenerationRequests.Add(request);
         await _db.SaveChangesAsync();
 
