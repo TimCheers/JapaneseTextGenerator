@@ -1,0 +1,38 @@
+.texts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  height: calc(100vh - 260px);
+  overflow-y: auto;
+  padding-right: 8px;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.texts-list::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Edge, Safari */
+}
+
+.text-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.text-card p {
+  margin: 0;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
