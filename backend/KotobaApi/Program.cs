@@ -46,6 +46,9 @@ builder.Services.AddSingleton<IFsrsScheduler, Fsrs7Scheduler>();
 builder.Services.AddSingleton<ReadingEngagementPolicy>();
 builder.Services.AddSingleton<InMemoryLearningEngine>();
 
+//builder.Services.AddHttpClient<IAiTextGenerationService, OpenAiTextGenerationService>();
+builder.Services.AddHttpClient<IAiTextGenerationService, GeminiTextGenerationService>();
+
 
 builder.Services.AddCors(options =>
 {
