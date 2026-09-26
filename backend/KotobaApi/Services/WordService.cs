@@ -18,6 +18,12 @@ public class WordService : IWordService
                 d.ExampleSentence, d.Notes, d.AcquisitionSource, d.CreatedAt))
             .ToListAsync();
 
+    public async Task<List<Word>> GetAllForUserAsync(Guid userId) =>
+        await _db.Words
+            .AsNoTracking()
+            .Where(w => w.Deck.UserId == userId)
+            .ToListAsync();
+
     public async Task<WordDto?> GetByIdAsync(Guid deckId, Guid id)
     {
         var word = await _db.Words.AsNoTracking()
