@@ -27,7 +27,12 @@ frontend/              React + TypeScript client
 
 ```
 cd backend/KotobaApi
-dotnet user-secrets set "Gemini:ApiKey" "<your-key>"
+
+dotnet user-secrets set "ConnectionStrings:Default" "<your-postgres-connection-string>"
+dotnet user-secrets set "Jwt:Key" "<random string, 40+ characters>"
+dotnet user-secrets set "Jwt:Issuer" "<your-issuer>"
+dotnet user-secrets set "Jwt:Audience" "<your-audience>"
+dotnet user-secrets set "Gemini:ApiKey" "<your Google AI Studio key>"
 dotnet run
 ```
 
