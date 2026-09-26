@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext"
 import { createDeck } from "../api/decks"
 import type { CreateDeckRequest } from "../api/decks"
 import { DeckCard } from "../components/DeckCard"
+import "../styles/DeckForm.css";
 
 
 export function DecksPage() {
@@ -53,7 +54,7 @@ export function DecksPage() {
     return (
         <div>
             <h1>My Decks</h1>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="deck-form">
                 <input placeholder="name" name="name" value={form.name} onChange={handleChange} />
                 <input placeholder="description"
                     name="description"
