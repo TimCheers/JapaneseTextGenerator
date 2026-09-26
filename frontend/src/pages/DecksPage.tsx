@@ -4,6 +4,8 @@ import { getDecks } from "../api/decks"
 import { AuthContext } from "../context/AuthContext"
 import { createDeck } from "../api/decks"
 import type { CreateDeckRequest } from "../api/decks"
+import { DeckCard } from "../components/DeckCard"
+
 
 export function DecksPage() {
     const { user } = useContext(AuthContext);
@@ -21,6 +23,12 @@ export function DecksPage() {
         setForm({ ...form, [name]: value });
     };
 
+    useEffect(() => {
+        if (user) {
+            getDecks(user.id).then((result) => setDecks(result));
+        }
+    }, [user]);
+    
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -42,12 +50,6 @@ export function DecksPage() {
         }
     };
 
-    useEffect(() => {
-        if (user) {
-            getDecks(user.id).then((result) => setDecks(result));
-        }
-    }, [user]);
-
     return (
         <div>
             <h1>My Decks</h1>
@@ -60,14 +62,11 @@ export function DecksPage() {
                 <button type="submit">Create</button>
                 {error && <p>{error}</p>}
             </form>
-            <ul>
+            <div className="decks-list">
                 {decks.map((deck) => (
-                    <li key={deck.id}>
-                        <p>{deck.name}</p>
-                        <p>{deck.description}</p>
-                    </li>
+                    <DeckCard key={deck.id} deck={deck} />
                 ))}
-            </ul>
+            </div>
         </div>
     );
 }
