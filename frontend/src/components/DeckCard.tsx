@@ -1,4 +1,5 @@
 import type { Deck } from "../api/decks"
+import { Link } from "react-router-dom";
 import "../styles/DeckCard.css";
 
 
@@ -9,9 +10,11 @@ interface DeckCardProps {
 export function DeckCard({ deck }: DeckCardProps) {
 
     return (
-        <div className="deck-card">
-            <p>{deck.name}</p>
-            <p>{deck.description}</p>
-        </div>
+        <Link to={`/decks/${deck.id}`}>
+            <div className="deck-card">
+                <p>{deck.name}</p>
+                <p>{deck.description}</p>
+            </div>
+        </Link>
     );
 }

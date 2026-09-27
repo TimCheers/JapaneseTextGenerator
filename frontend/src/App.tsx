@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage"
 import { LoginPage } from "./pages/LoginPage"
 import { ProfilePage } from "./pages/ProfilePage"
 import { RegisterPage } from "./pages/RegisterPage"
+import { DeckDetailPage } from "./pages/DeckDetailPage"
 import { Layout } from "./components/Layout"
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/decks" element={<DecksPage />} />
+          <Route path="/decks/:deckId" element={<DeckDetailPage />} />
         </Route>
       </Routes>
     </div>
