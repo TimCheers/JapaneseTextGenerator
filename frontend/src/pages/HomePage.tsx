@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect, useContext, useRef } from "react"
 import { AuthContext } from "../context/AuthContext"
 import type { GeneratedText } from "../api/generatedTexts"
 import { getGeneratedTexts } from "../api/generatedTexts"
@@ -10,8 +10,10 @@ import { createGenerationRequest } from "../api/generationRequests"
 export function HomePage() {
     const { user } = useContext(AuthContext);
     const [texts, setTexts] = useState<GeneratedText[]>([]);
-
+    const [error, setError] = useState("");
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+    const listRef = useRef<HTMLDivElement>(null);
 
     const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -19,20 +21,20 @@ export function HomePage() {
         if (reachedBottom) {
             if (!user || isGenerating) return;
             setIsGenerating(true);
-
+            setError("");
             try {
                 await createGenerationRequest(user.id);
                 const result = await getGeneratedTexts(user.id);
                 setTexts(result);
             } catch (err) {
-
+                setError(err instanceof Error ? err.message : "Something went wrong");
             } finally {
                 setIsGenerating(false);
+
             }
         }
 
     };
-
 
     useEffect(() => {
         if (user) {
@@ -40,14 +42,17 @@ export function HomePage() {
         }
     }, [user]);
 
-
-
+    useEffect(() => {
+        if (listRef.current) {
+            listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+    }, [texts]);
 
     return (
         <div>
             <h1>Home page</h1>
             <div className="texts-container">
-                <div className="texts-list" onScroll={handleScroll}>
+                <div className="texts-list" ref={listRef} onScroll={handleScroll}>
                     {[...texts].reverse().map((text) => (<TextCard key={text.id} text={text} />))}
                 </div>
                 {isGenerating && (
@@ -55,6 +60,7 @@ export function HomePage() {
                         <div className="spinner"></div>
                     </div>
                 )}
+                {error && <p className="generation-error">{error}</p>}
             </div>
         </div>
     );

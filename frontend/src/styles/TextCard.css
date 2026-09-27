@@ -63,3 +63,15 @@
     transform: rotate(360deg);
   }
 }
+
+.generation-error {
+  color: #cc3355;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.text-card p {
+  font-family: "Noto Serif JP", serif;
+  letter-spacing: 0.02em;
+}
