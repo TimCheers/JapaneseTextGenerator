@@ -10,7 +10,7 @@ import { createGenerationRequest } from "../api/generationRequests"
 export function HomePage() {
     const { user } = useContext(AuthContext);
     const [texts, setTexts] = useState<GeneratedText[]>([]);
-
+    const [error, setError] = useState("");
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
     const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
@@ -19,15 +19,16 @@ export function HomePage() {
         if (reachedBottom) {
             if (!user || isGenerating) return;
             setIsGenerating(true);
-
+            setError("");
             try {
                 await createGenerationRequest(user.id);
                 const result = await getGeneratedTexts(user.id);
                 setTexts(result);
             } catch (err) {
-
+                setError(err instanceof Error ? err.message : "Something went wrong");
             } finally {
                 setIsGenerating(false);
+
             }
         }
 
@@ -55,6 +56,7 @@ export function HomePage() {
                         <div className="spinner"></div>
                     </div>
                 )}
+                {error && <p className="generation-error">{error}</p>}
             </div>
         </div>
     );
