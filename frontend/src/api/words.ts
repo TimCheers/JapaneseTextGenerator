@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
 
+
 export interface Word {
     id: string;
     deckId: string;
@@ -28,12 +29,29 @@ export interface CreateWordRequest {
 
 const API_BASE_URL = "http://localhost:5166";
 
-export async function getWordsForDeck(deckId: string): Promise<Word[]>{
-      const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, { headers: getAuthHeaders(), });
-    
-      if (!response.ok) {
+export async function getWordsForDeck(deckId: string): Promise<Word[]> {
+    const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, { headers: getAuthHeaders(), });
+
+    if (!response.ok) {
         throw new Error(`Failed to load words: ${response.status}`);
-      }
-    
-      return response.json();
+    }
+
+    return response.json();
+}
+
+export async function importWordsFromExcel(deckId: string, file: File): Promise<Word[]> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words/import`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to create generation request: ${response.status}`);
+    }
+
+    return response.json();
 }
