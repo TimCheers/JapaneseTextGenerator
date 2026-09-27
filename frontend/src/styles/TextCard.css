@@ -70,3 +70,8 @@
   text-align: center;
   margin-top: 8px;
 }
+
+.text-card p {
+  font-family: "Noto Serif JP", serif;
+  letter-spacing: 0.02em;
+}
