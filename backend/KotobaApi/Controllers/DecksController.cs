@@ -1,20 +1,25 @@
-﻿using KotobaApi.Services;
+﻿using KotobaApi.Authorization;
+using KotobaApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KotobaApi.Controllers;
 
 [ApiController]
 [Route("api/users/{userId}/decks")]
+[Authorize]
 public class DecksController : ControllerBase
 {
     private readonly IDeckService _service;
     public DecksController(IDeckService service) => _service = service;
 
     [HttpGet]
+    [SameUser("userId")]
     public async Task<ActionResult<List<DeckDto>>> GetAll(Guid userId) =>
         Ok(await _service.GetAllForUserAsync(userId));
 
     [HttpGet("{id}")]
+    [SameUser("userId")]
     public async Task<ActionResult<DeckDto>> GetById(Guid userId, Guid id)
     {
         var deck = await _service.GetByIdAsync(userId, id);
@@ -22,6 +27,7 @@ public class DecksController : ControllerBase
     }
 
     [HttpPost]
+    [SameUser("userId")]
     public async Task<ActionResult<DeckDto>> Create(Guid userId, CreateDeckDto dto)
     {
         var deck = await _service.CreateAsync(userId, dto);
@@ -29,10 +35,12 @@ public class DecksController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [SameUser("userId")]
     public async Task<IActionResult> Update(Guid userId, Guid id, UpdateDeckDto dto) =>
         await _service.UpdateAsync(userId, id, dto) ? NoContent() : NotFound();
 
     [HttpDelete("{id}")]
+    [SameUser("userId")]
     public async Task<IActionResult> Delete(Guid userId, Guid id) =>
         await _service.DeleteAsync(userId, id) ? NoContent() : NotFound();
 }
