@@ -1,10 +1,13 @@
+using KotobaApi.Authorization;
 using KotobaApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KotobaApi.Controllers;
 
 [ApiController]
 [Route("api/decks/{deckId}/words")]
+[Authorize]
 public class WordsController : ControllerBase
 {
     private readonly IWordService _service;
@@ -12,34 +15,34 @@ public class WordsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<List<WordDto>>> GetAll(Guid deckId) =>
-        Ok(await _service.GetAllForDeckAsync(deckId));
+        Ok(await _service.GetAllForDeckAsync(deckId, this.GetCurrentUserId()));
 
     [HttpGet("{id}")]
     public async Task<ActionResult<WordDto>> GetById(Guid deckId, Guid id)
     {
-        var word = await _service.GetByIdAsync(deckId, id);
+        var word = await _service.GetByIdAsync(deckId, id, this.GetCurrentUserId());
         return word is null ? NotFound() : Ok(word);
     }
 
     [HttpPost]
     public async Task<ActionResult<WordDto>> Create(Guid deckId, CreateWordDto dto)
     {
-        var word = await _service.CreateAsync(deckId, dto);
-        return CreatedAtAction(nameof(GetById), new { deckId, id = word.Id }, word);
+        var word = await _service.CreateAsync(deckId, dto, this.GetCurrentUserId());
+        return word is null ? Forbid() : CreatedAtAction(nameof(GetById), new { deckId, id = word.Id }, word);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid deckId, Guid id, UpdateWordDto dto) =>
-        await _service.UpdateAsync(deckId, id, dto) ? NoContent() : NotFound();
+        await _service.UpdateAsync(deckId, id, dto, this.GetCurrentUserId()) ? NoContent() : NotFound();
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid deckId, Guid id) =>
-        await _service.DeleteAsync(deckId, id) ? NoContent() : NotFound();
+        await _service.DeleteAsync(deckId, id, this.GetCurrentUserId()) ? NoContent() : NotFound();
     
     [HttpPost("import")]
     public async Task<ActionResult<List<WordDto>>> Import(Guid deckId, IFormFile file)
     {
-        var words = await _service.ImportFromExcelAsync(deckId, file.OpenReadStream());
-        return Ok(words);
+        var words = await _service.ImportFromExcelAsync(deckId, file.OpenReadStream(), this.GetCurrentUserId());
+        return words is null ? Forbid() :  Ok(words);
     }
 }

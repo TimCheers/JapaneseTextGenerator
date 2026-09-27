@@ -10,10 +10,10 @@ public class WordService : IWordService
     private readonly AppDbContext _db;
     public WordService(AppDbContext db) => _db = db;
 
-    public async Task<List<WordDto>> GetAllForDeckAsync(Guid deckId) =>
+    public async Task<List<WordDto>> GetAllForDeckAsync(Guid deckId, Guid currentUserId) =>
         await _db.Words
             .AsNoTracking()
-            .Where(d => d.DeckId == deckId)
+            .Where(d => d.DeckId == deckId && d.Deck.UserId == currentUserId)
             .Select(d => new WordDto(d.Id, d.DeckId, d.Term, d.Reading, d.Meaning, d.PartOfSpeech, d.JlptLevel,
                 d.ExampleSentence, d.Notes, d.AcquisitionSource, d.CreatedAt))
             .ToListAsync();
@@ -24,18 +24,20 @@ public class WordService : IWordService
             .Where(w => w.Deck.UserId == userId)
             .ToListAsync();
 
-    public async Task<WordDto?> GetByIdAsync(Guid deckId, Guid id)
+    public async Task<WordDto?> GetByIdAsync(Guid deckId, Guid id, Guid currentUserId)
     {
         var word = await _db.Words.AsNoTracking()
-            .FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId);
+            .FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId && d.Deck.UserId == currentUserId);
         return word is null
             ? null
             : new WordDto(word.Id, word.DeckId, word.Term, word.Reading, word.Meaning, word.PartOfSpeech,
                 word.JlptLevel, word.ExampleSentence, word.Notes, word.AcquisitionSource, word.CreatedAt);
     }
 
-    public async Task<WordDto> CreateAsync(Guid deckId, CreateWordDto dto)
+    public async Task<WordDto?> CreateAsync(Guid deckId, CreateWordDto dto, Guid currentUserId)
     {
+        if(!await _db.Decks.AnyAsync(d => d.Id == deckId && d.UserId == currentUserId))
+            return null;
         var word = new Word
         {
             Id = Guid.NewGuid(), DeckId = deckId, Term = dto.Term, Reading = dto.Reading, Meaning = dto.Meaning,
@@ -48,9 +50,9 @@ public class WordService : IWordService
             word.JlptLevel, word.ExampleSentence, word.Notes, word.AcquisitionSource, word.CreatedAt);
     }
 
-    public async Task<bool> UpdateAsync(Guid deckId, Guid id, UpdateWordDto dto)
+    public async Task<bool> UpdateAsync(Guid deckId, Guid id, UpdateWordDto dto, Guid currentUserId)
     {
-        var word = await _db.Words.FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId);
+        var word = await _db.Words.FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId && d.Deck.UserId == currentUserId);
         if (word is null) return false;
 
         word.Term = dto.Term;
@@ -66,9 +68,9 @@ public class WordService : IWordService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid deckId, Guid id)
+    public async Task<bool> DeleteAsync(Guid deckId, Guid id, Guid currentUserId)
     {
-        var word = await _db.Words.FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId);
+        var word = await _db.Words.FirstOrDefaultAsync(d => d.Id == id && d.DeckId == deckId && d.Deck.UserId == currentUserId);
         if (word is null) return false;
 
         _db.Words.Remove(word);
@@ -76,8 +78,10 @@ public class WordService : IWordService
         return true;
     }
 
-    public async Task<List<WordDto>> ImportFromExcelAsync(Guid deckId, Stream fileStream)
+    public async Task<List<WordDto>?> ImportFromExcelAsync(Guid deckId, Stream fileStream, Guid currentUserId)
     {
+        if(!await _db.Decks.AnyAsync(d => d.Id == deckId && d.UserId == currentUserId))
+            return null;
         using var workbook = new XLWorkbook(fileStream);
         var worksheet = workbook.Worksheet(1);
 

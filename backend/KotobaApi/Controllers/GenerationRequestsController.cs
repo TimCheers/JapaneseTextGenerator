@@ -1,20 +1,25 @@
+using KotobaApi.Authorization;
 using KotobaApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KotobaApi.Controllers;
 
 [ApiController]
 [Route("api/users/{userId}/generation-requests")]
+[Authorize]
 public class GenerationRequestsController : ControllerBase
 {
     private readonly IGenerationRequestService _service;
     public GenerationRequestsController(IGenerationRequestService service) => _service = service;
 
     [HttpGet]
+    [SameUser("userId")]
     public async Task<ActionResult<List<GenerationRequestDto>>> GetAll(Guid userId) =>
         Ok(await _service.GetAllForUserAsync(userId));
 
     [HttpGet("{id}")]
+    [SameUser("userId")]
     public async Task<ActionResult<GenerationRequestDto>> GetById(Guid userId, Guid id)
     {
         var result = await _service.GetByIdAsync(id, userId);
@@ -22,6 +27,7 @@ public class GenerationRequestsController : ControllerBase
     }
     
     [HttpPost]
+    [SameUser("userId")]
     public async Task<ActionResult<GenerationRequestDto>> Create(Guid userId, CreateGenerationRequestDto dto)
     {
         var result = await _service.CreateAsync(userId, dto);
