@@ -1,15 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useContext } from "react"
-import { importWordsFromExcel } from "../api/words"
-import { getWordsForDeck } from "../api/words"
+import { importWordsFromExcel, getWordsForDeck, type Word } from "../api/words"
 import { AuthContext } from "../context/AuthContext"
-import type { Word } from "../api/words"
-import type { CreateDeckRequest } from "../api/decks"
+import { getDeckById, updateDeck, type Deck, type CreateDeckRequest, deleteDeck } from "../api/decks"
+import { useNavigate } from "react-router-dom";
 
-import { getDeckById, updateDeck, type Deck } from "../api/decks"
 
 
 export function DeckDetailPage() {
+    const navigate = useNavigate();
     const { deckId } = useParams<{ deckId: string }>();
     const [words, setWords] = useState<Word[]>([]);
     const [file, setFile] = useState<File | null>(null);
@@ -55,6 +54,18 @@ export function DeckDetailPage() {
         }
     };
 
+    const handleDelete = async () => {
+        if (user && deck) {
+            try {
+                await deleteDeck(user.id, deck.id);
+                navigate("/decks");
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Something went wrong");
+            }
+
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -82,7 +93,7 @@ export function DeckDetailPage() {
             <div>
                 <h2>Deck {deck?.name}</h2>
                 <h4>Deck {deck?.description}</h4>
-                <button type="submit">Delete</button>
+                <button type="button" onClick={handleDelete}>Delete deck</button>
                 <form onSubmit={handleSubmit} className="deck-form">
                     <input placeholder="name"
                         name="name"
