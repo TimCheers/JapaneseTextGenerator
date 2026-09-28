@@ -251,6 +251,7 @@ export function DeckDetailPage() {
                             <th>Word</th>
                             <th>Reading</th>
                             <th>Meaning</th>
+                            <th>Example sentence</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -260,6 +261,7 @@ export function DeckDetailPage() {
                                 <td>{word.term}</td>
                                 <td>{word.reading}</td>
                                 <td>{word.meaning}</td>
+                                <td>{word.exampleSentence}</td>
                                 <td>
                                     <button
                                         type="button"
