@@ -16,7 +16,6 @@ export interface Word {
 }
 
 export interface CreateWordRequest {
-    deckId: string;
     term: string;
     reading: string;
     meaning: string;
@@ -56,3 +55,18 @@ export async function importWordsFromExcel(deckId: string, file: File): Promise<
     return response.json();
 }
 
+export async function createWord(deckId: string, data: CreateWordRequest): Promise<Word> {
+  const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
