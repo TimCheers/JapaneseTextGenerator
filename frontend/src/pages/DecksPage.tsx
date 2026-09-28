@@ -60,7 +60,7 @@ export function DecksPage() {
     };
 
     return (
-        <div>
+        <div className="decks-page-header">
             <h1>My Decks</h1>
             <Modal isOpen={isDeckModalOpen} onClose={() => setIsDeckModalOpen(false)}>
                 <form onSubmit={handleSubmit} className="deck-form">
@@ -73,7 +73,7 @@ export function DecksPage() {
                     {error && <p>{error}</p>}
                 </form>
             </Modal>
-            <button type="button" onClick={handleEditeDeckW}>Edite deck</button>
+            <button type="button" onClick={handleEditeDeckW}>Create deck</button>
             <div className="decks-list">
                 {decks.map((deck) => (
                     <DeckCard key={deck.id} deck={deck} />
