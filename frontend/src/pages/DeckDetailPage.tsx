@@ -6,6 +6,7 @@ import { getDeckById, updateDeck, type Deck, type CreateDeckRequest, deleteDeck 
 import { type CreateWordRequest, deleteWord, updateWord } from "../api/words"
 import { useNavigate } from "react-router-dom";
 import { Modal } from "../components/Modal";
+import "../styles/DeckForm.css";
 
 
 
@@ -183,14 +184,14 @@ export function DeckDetailPage() {
 
     return (
         <>
-            <div>
-                <input type="file" onChange={handleFileChange} />
-                <button onClick={handleUploadWords}>Upload</button>
+            <div className="import-section">
+                <p>Import words</p>
+                <div className="upload-form">
+                    <input type="file" onChange={handleFileChange} />
+                    <button onClick={handleUploadWords}>Upload</button>
+                </div>
             </div>
             <div>
-                <h2>Deck {deck?.name}</h2>
-                <h4>Deck {deck?.description}</h4>
-                <button type="button" onClick={handleDeleteDeck}>Delete deck</button>
                 <Modal isOpen={isDeckModalOpen} onClose={() => setIsDeckModalOpen(false)}>
                     <form onSubmit={handleUpdateDeck} className="deck-form">
                         <input placeholder="name"
@@ -203,7 +204,6 @@ export function DeckDetailPage() {
                         {error && <p>{error}</p>}
                     </form>
                 </Modal>
-                <button type="button" onClick={handleEditeDeckW}>Edite deck</button>
                 <Modal isOpen={isWordModalOpen} onClose={() => setIsWordModalOpen(false)}>
                     <form onSubmit={handleAddWord} className="word-form">
                         <input placeholder="word"
@@ -230,17 +230,58 @@ export function DeckDetailPage() {
                         <input placeholder="acquisitionSource"
                             name="acquisitionSource"
                             value={wordForm.acquisitionSource ?? ""} onChange={handleChangeWord} />
-                        <button type="submit">Create word</button>
+                        <button type="submit">Done</button>
                         {error && <p>{error}</p>}
                     </form>
                 </Modal>
-                <button type="button" onClick={handleEditeWordW}>Add word</button>
-                {words.map((word) => (
-                    <div key={word.id}>
-                        <p onClick={() => handleWordClick(word)} key={word.id}>{word.term}     {word.reading}     {word.meaning}</p>
-                        <button type="button" onClick={() => handleDeleteWord(word.id)}>Delete word</button>
+                <div className="deck-detail-header">
+                    <div>
+                        <h2>{deck?.name}</h2>
+                        <h4>{deck?.description}</h4>
                     </div>
-                ))}
+                    <div className="deck-actions">
+                        <button type="button" onClick={handleDeleteDeck}>Delete deck</button>
+                        <button type="button" onClick={handleEditeDeckW}>Edite deck</button>
+                        <button type="button" onClick={handleEditeWordW}>Add word</button>
+                    </div>
+                </div>
+                <table className="words-table">
+                    <thead>
+                        <tr>
+                            <th>Word</th>
+                            <th>Reading</th>
+                            <th>Meaning</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {words.map((word) => (
+                            <tr key={word.id} onClick={() => handleWordClick(word)}>
+                                <td>{word.term}</td>
+                                <td>{word.reading}</td>
+                                <td>{word.meaning}</td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        className="delete-word-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteWord(word.id);
+                                        }}
+                                    >
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M3 6h18" />
+                                            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                                            <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                                            <path d="M10 11v6" />
+                                            <path d="M14 11v6" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div >
         </>
     );

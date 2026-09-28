@@ -1,25 +1,58 @@
 .decks-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
 }
 
 .deck-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    height: 160px;
+    padding: 16px;
+    border: 1px solid var(--color-border, #d9d9e3);
+    border-radius: 12px;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.deck-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
 }
 
 .deck-card p:first-child {
-  margin: 0 0 6px;
-  font-weight: 600;
-  font-size: 16px;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 0 0 8px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .deck-card p:last-child {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 14px;
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.decks-page {
+    position: relative;
+}
+
+.create-deck-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.deck-card p {
+    font-family: "Noto Serif JP", serif;
 }
