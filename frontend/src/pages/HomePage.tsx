@@ -12,39 +12,50 @@ export function HomePage() {
     const [texts, setTexts] = useState<GeneratedText[]>([]);
     const [error, setError] = useState("");
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const hasScrolledInitiallyRef = useRef<boolean>(false);
 
     const listRef = useRef<HTMLDivElement>(null);
+
+    async function generateText() {
+        if (!user || isGenerating) return;
+        setIsGenerating(true);
+        setError("");
+        try {
+            await createGenerationRequest(user.id);
+            const result = await getGeneratedTexts(user.id);
+            setTexts(result);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setIsGenerating(false);
+
+        }
+    }
 
     const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
         const reachedBottom = scrollTop + clientHeight >= scrollHeight - 1;
         if (reachedBottom) {
-            if (!user || isGenerating) return;
-            setIsGenerating(true);
-            setError("");
-            try {
-                await createGenerationRequest(user.id);
-                const result = await getGeneratedTexts(user.id);
-                setTexts(result);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Something went wrong");
-            } finally {
-                setIsGenerating(false);
-
-            }
+            generateText();
         }
 
     };
 
     useEffect(() => {
         if (user) {
-            getGeneratedTexts(user.id).then((result) => setTexts(result));
+            getGeneratedTexts(user.id).then((result) => {
+                setTexts(result);
+                if (result.length === 0) {
+                    generateText();
+                }
+            });
         }
     }, [user]);
 
     useEffect(() => {
-        if (listRef.current) {
+        if (listRef.current && !hasScrolledInitiallyRef.current && texts.length > 0) {
             listRef.current.scrollTop = listRef.current.scrollHeight;
+            hasScrolledInitiallyRef.current = true;
         }
     }, [texts]);
 

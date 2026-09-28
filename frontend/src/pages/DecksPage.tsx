@@ -6,6 +6,8 @@ import { createDeck } from "../api/decks"
 import type { CreateDeckRequest } from "../api/decks"
 import { DeckCard } from "../components/DeckCard"
 import "../styles/DeckForm.css";
+import { Modal } from "../components/Modal";
+
 
 
 export function DecksPage() {
@@ -18,6 +20,7 @@ export function DecksPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -29,7 +32,7 @@ export function DecksPage() {
             getDecks(user.id).then((result) => setDecks(result));
         }
     }, [user]);
-    
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -44,6 +47,7 @@ export function DecksPage() {
                 description: ""
             });
             setSuccess(true);
+            setIsDeckModalOpen(false);
         } catch (err) {
             setError("Something went wrong");
         } finally {
@@ -51,18 +55,25 @@ export function DecksPage() {
         }
     };
 
+    const handleEditeDeckW = () => {
+        setIsDeckModalOpen(true);
+    };
+
     return (
-        <div>
+        <div className="decks-page-header">
             <h1>My Decks</h1>
-            <form onSubmit={handleSubmit} className="deck-form">
-                <input placeholder="name" name="name" value={form.name} onChange={handleChange} />
-                <input placeholder="description"
-                    name="description"
-                    value={form.description ?? ""}
-                    onChange={handleChange} />
-                <button type="submit">Create</button>
-                {error && <p>{error}</p>}
-            </form>
+            <Modal isOpen={isDeckModalOpen} onClose={() => setIsDeckModalOpen(false)}>
+                <form onSubmit={handleSubmit} className="deck-form">
+                    <input placeholder="name" name="name" value={form.name} onChange={handleChange} />
+                    <input placeholder="description"
+                        name="description"
+                        value={form.description ?? ""}
+                        onChange={handleChange} />
+                    <button type="submit">Create</button>
+                    {error && <p>{error}</p>}
+                </form>
+            </Modal>
+            <button type="button" onClick={handleEditeDeckW}>Create deck</button>
             <div className="decks-list">
                 {decks.map((deck) => (
                     <DeckCard key={deck.id} deck={deck} />
