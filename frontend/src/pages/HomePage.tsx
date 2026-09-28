@@ -12,6 +12,7 @@ export function HomePage() {
     const [texts, setTexts] = useState<GeneratedText[]>([]);
     const [error, setError] = useState("");
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const hasScrolledInitiallyRef = useRef<boolean>(false);
 
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -43,8 +44,9 @@ export function HomePage() {
     }, [user]);
 
     useEffect(() => {
-        if (listRef.current) {
+        if (listRef.current && !hasScrolledInitiallyRef.current && texts.length > 0) {
             listRef.current.scrollTop = listRef.current.scrollHeight;
+            hasScrolledInitiallyRef.current  = true;
         }
     }, [texts]);
 
