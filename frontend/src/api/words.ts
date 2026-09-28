@@ -56,17 +56,42 @@ export async function importWordsFromExcel(deckId: string, file: File): Promise<
 }
 
 export async function createWord(deckId: string, data: CreateWordRequest): Promise<Word> {
-  const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
-  }
+    const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+        },
+        body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
 
-  return response.json();
+    return response.json();
+}
+
+export async function updateWord(deckId: string, wordId: string, data: CreateWordRequest): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words/${wordId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+        },
+        body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
+}
+
+export async function deleteWord(deckId: string, wordId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words/${wordId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+    }
+    )
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
 }

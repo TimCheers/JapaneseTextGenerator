@@ -3,7 +3,7 @@ import { useState, useEffect, useContext } from "react"
 import { importWordsFromExcel, getWordsForDeck, createWord, type Word } from "../api/words"
 import { AuthContext } from "../context/AuthContext"
 import { getDeckById, updateDeck, type Deck, type CreateDeckRequest, deleteDeck } from "../api/decks"
-import { type CreateWordRequest } from "../api/words"
+import { type CreateWordRequest, deleteWord } from "../api/words"
 import { useNavigate } from "react-router-dom";
 
 
@@ -116,9 +116,22 @@ export function DeckDetailPage() {
             setError("Something went wrong");
         }
     }
+
     const handleChangeWord = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setWordForm({ ...wordForm, [name]: value });
+    };
+
+    const handleDeleteWord = async (wordId: string) => {
+        if (deck) {
+            try {
+                await deleteWord(deck.id, wordId);
+                setWords(words.filter(x => x.id != wordId));
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Something went wrong");
+            }
+
+        }
     };
 
     return (
@@ -170,7 +183,10 @@ export function DeckDetailPage() {
                     {error && <p>{error}</p>}
                 </form>
                 {words.map((word) => (
-                    <p key={word.id}>{word.term}     {word.reading}     {word.meaning}</p>
+                    <div key={word.id}>
+                        <p key={word.id}>{word.term}     {word.reading}     {word.meaning}</p>
+                        <button type="button" onClick={() => handleDeleteWord(word.id)}>Delete word</button>
+                    </div>
                 ))}
             </div>
         </>
