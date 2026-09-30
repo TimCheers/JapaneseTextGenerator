@@ -1,8 +1,6 @@
 using System.Text;
 using KotobaApi.Data;
 using KotobaApi.Services;
-using KotobaApi.Srs.Learning;
-using KotobaApi.Srs.Reading;
 using KotobaApi.Srs.Scheduling;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -39,12 +37,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// FSRS-7 scheduler (stateless) + in-memory learning engine (experimental store).
-// Engine must stay singleton while in-memory so progress survives across requests.
-// Data is reset on restart by design; replace with persistent store later without touching the scheduler.
+// FSRS-7 scheduler (stateless). The DB-backed WordProgressService is the production
+// persistence path now; InMemoryLearningEngine is kept only as the harness for
+// SrsSchedulingTests/SrsIdempotencyTests and is intentionally not registered here.
 builder.Services.AddSingleton<IFsrsScheduler, Fsrs7Scheduler>();
-builder.Services.AddSingleton<ReadingEngagementPolicy>();
-builder.Services.AddSingleton<InMemoryLearningEngine>();
 
 //builder.Services.AddHttpClient<IAiTextGenerationService, OpenAiTextGenerationService>();
 builder.Services.AddHttpClient<IAiTextGenerationService, GeminiTextGenerationService>();
