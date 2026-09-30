@@ -30,6 +30,8 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .text-card p {
@@ -74,4 +76,20 @@
 .text-card p {
   font-family: "Noto Serif JP", serif;
   letter-spacing: 0.02em;
+}
+
+.text-card button {
+  padding: 8px 14px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.text-card button:hover {
+  background: var(--color-primary-hover);
 }

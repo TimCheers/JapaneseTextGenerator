@@ -53,9 +53,6 @@ public class GeminiTextGenerationService : IAiTextGenerationService
         string? model = _config["Gemini:Model"] ??
                         throw new InvalidOperationException("Gemini:Model is not configured");
 
-        _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
-        _httpClient.DefaultRequestHeaders.Remove("x-goog-api-key");
-
         string wordsPrompt = string.Join("\n", words.Select(w => $"Word: {w.Term}\tMeaning: {w.Meaning}"));
 
         GeminiRequest request = new GeminiRequest(
@@ -67,9 +64,20 @@ public class GeminiTextGenerationService : IAiTextGenerationService
                     "You are generating a short reading practice text in Japanese for a language learner. Output ONLY the Japanese text itself, using the given words naturally in context. Do not include readings, romaji, translations, explanations, headers, or any markdown formatting — just the raw Japanese sentences.")
             }));
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", request);
-        response.EnsureSuccessStatusCode();
+        using HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post,
+            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent")
+        {
+            Content = JsonContent.Create(request)
+        };
+        httpRequest.Headers.Add("x-goog-api-key", apiKey);
+
+        HttpResponseMessage response = await _httpClient.SendAsync(httpRequest);
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorBody = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Gemini request failed ({(int)response.StatusCode} {response.StatusCode}): {errorBody}");
+        }
 
         GeminiResponse? parsedResponse = await response.Content.ReadFromJsonAsync<GeminiResponse>();
 
@@ -84,9 +92,6 @@ public class GeminiTextGenerationService : IAiTextGenerationService
         string? model = _config["Gemini:Model"] ??
                         throw new InvalidOperationException("Gemini:Model is not configured");
 
-        _httpClient.DefaultRequestHeaders.Remove("x-goog-api-key");
-        _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
-
         string systemPrompt =
             $"You will receive a short Japanese text. Write exactly {count} multiple-choice reading-comprehension " +
             "questions about it, in Japanese. Each question must have exactly 4 options, and exactly one correct " +
@@ -99,9 +104,20 @@ public class GeminiTextGenerationService : IAiTextGenerationService
                 { new GeminiRoleParts("user", new List<GeminiText> { new GeminiText(text) }) },
             new GeminiParts(new List<GeminiText> { new GeminiText(systemPrompt) }));
 
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", request);
-        response.EnsureSuccessStatusCode();
+        using HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post,
+            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent")
+        {
+            Content = JsonContent.Create(request)
+        };
+        httpRequest.Headers.Add("x-goog-api-key", apiKey);
+
+        HttpResponseMessage response = await _httpClient.SendAsync(httpRequest);
+        if (!response.IsSuccessStatusCode)
+        {
+            string errorBody = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Gemini request failed ({(int)response.StatusCode} {response.StatusCode}): {errorBody}");
+        }
 
         GeminiResponse? parsedResponse = await response.Content.ReadFromJsonAsync<GeminiResponse>();
         string raw = parsedResponse?.Candidates.FirstOrDefault()?.Content.Parts.FirstOrDefault()?.Text ??
