@@ -22,13 +22,15 @@ public class WordProgressService : IWordProgressService
         await _db.WordProgresses
             .AsNoTracking()
             .Where(p => p.UserId == userId && p.DueAt <= asOf)
-            .Select(p => new WordProgressDto(p.Id, p.WordId, p.Stability, p.StabilityFast, p.Difficulty, p.DueAt,
-                p.LastReviewedAt, p.ReviewCount, p.LapseCount))
+            .Select(p => new WordProgressDto(p.Id, p.WordId, p.Word.Term, p.Word.Reading, p.Word.Meaning,
+                p.Stability, p.StabilityFast, p.Difficulty, p.DueAt, p.LastReviewedAt, p.ReviewCount, p.LapseCount))
             .ToListAsync();
 
     public async Task<WordProgressDto> ApplyReviewAsync(Guid userId, Guid wordId, Guid eventId, FsrsRating rating,
         ReviewSource source, DateTimeOffset reviewedAt)
     {
+        Word word = await _db.Words.FirstOrDefaultAsync(w => w.Id == wordId)
+            ?? throw new InvalidOperationException($"Word {wordId} does not exist.");
         WordProgress? wordProgress =
             await _db.WordProgresses.FirstOrDefaultAsync(wp => wp.UserId == userId && wp.WordId == wordId);
         WordReviewEvent? newEvent = await _db.WordReviewEvents.FirstOrDefaultAsync(e =>
@@ -36,9 +38,9 @@ public class WordProgressService : IWordProgressService
 
         if (newEvent != null && wordProgress != null)
         {
-            return new WordProgressDto(wordProgress.Id, wordId, newEvent.StabilityAfter, newEvent.StabilityFastAfter,
-                newEvent.DifficultyAfter, newEvent.DueAtAfter, newEvent.ReviewedAt, wordProgress.ReviewCount,
-                wordProgress.LapseCount);
+            return new WordProgressDto(wordProgress.Id, wordId, word.Term, word.Reading, word.Meaning,
+                newEvent.StabilityAfter, newEvent.StabilityFastAfter, newEvent.DifficultyAfter, newEvent.DueAtAfter,
+                newEvent.ReviewedAt, wordProgress.ReviewCount, wordProgress.LapseCount);
         }
 
         FsrsScheduleRequest scheduleRequest;
@@ -115,9 +117,9 @@ public class WordProgressService : IWordProgressService
         _db.WordReviewEvents.Add(reviewEvent);
         await _db.SaveChangesAsync();
 
-        return new WordProgressDto(newWordProgress.Id, wordId, reviewEvent.StabilityAfter,
-            reviewEvent.StabilityFastAfter, reviewEvent.DifficultyAfter, reviewEvent.DueAtAfter,
-            reviewEvent.ReviewedAt, newWordProgress.ReviewCount, newWordProgress.LapseCount);
+        return new WordProgressDto(newWordProgress.Id, wordId, word.Term, word.Reading, word.Meaning,
+    reviewEvent.StabilityAfter, reviewEvent.StabilityFastAfter, reviewEvent.DifficultyAfter,
+    reviewEvent.DueAtAfter, reviewEvent.ReviewedAt, newWordProgress.ReviewCount, newWordProgress.LapseCount);
     }
 
     public async Task<List<Guid>> SelectWordsForGenerationAsync(Guid userId, List<Word> candidateWords,
