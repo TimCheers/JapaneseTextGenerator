@@ -32,15 +32,17 @@ JapaneseTextGenerator is a Japanese-learning app that turns your own vocabulary 
 
 ## Project structure
 
-backend/KotobaApi/ ASP.NET Core Web API (controllers, services, EF Core models)
-frontend/ React + TypeScript client
-docs/ Design notes and screenshots
-
+```
+backend/KotobaApi/     ASP.NET Core Web API (controllers, services, EF Core models)
+frontend/              React + TypeScript client
+docs/                  Design notes and screenshots
+```
 
 ## Running locally
 
 **Backend**
 
+```
 cd backend/KotobaApi
 
 dotnet user-secrets set "ConnectionStrings:Default" "<your-postgres-connection-string>"
@@ -49,16 +51,17 @@ dotnet user-secrets set "Jwt:Issuer" "<your-issuer>"
 dotnet user-secrets set "Jwt:Audience" "<your-audience>"
 dotnet user-secrets set "Gemini:ApiKey" "<your Google AI Studio key>"
 dotnet run
-
+```
 
 The API runs on `http://localhost:5166` by default.
 
 **Frontend**
 
+```
 cd frontend
 npm install
 npm run dev
-
+```
 
 ## AI provider
 
