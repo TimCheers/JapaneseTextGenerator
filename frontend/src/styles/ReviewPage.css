@@ -1,0 +1,87 @@
+.review-page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px;
+    text-align: center;
+}
+
+.review-error {
+    color: #cc3355;
+    font-size: 14px;
+}
+
+.review-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.review-term {
+    font-family: "Noto Serif JP", serif;
+    font-size: 32px;
+    margin: 0;
+}
+
+.review-reading {
+    color: var(--color-text-muted);
+    font-size: 16px;
+    margin: 0;
+}
+
+.review-meaning {
+    font-size: 18px;
+    margin: 0;
+}
+
+.review-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.review-buttons button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+}
+
+.review-buttons button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.review-buttons button:nth-child(1) { background: #cc3355; }
+.review-buttons button:nth-child(1):not(:disabled):hover { background: #b32d4a; }
+
+.review-buttons button:nth-child(2) { background: #d97706; }
+.review-buttons button:nth-child(2):not(:disabled):hover { background: #b45309; }
+
+.review-buttons button:nth-child(3) { background: var(--color-primary); }
+.review-buttons button:nth-child(3):not(:disabled):hover { background: var(--color-primary-hover); }
+
+.review-buttons button:nth-child(4) { background: #2f9e44; }
+.review-buttons button:nth-child(4):not(:disabled):hover { background: #268a3a; }
+
+.review-card > button {
+    padding: 10px 20px;
+    background: var(--color-primary);
+    color: var(--color-primary-text);
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.review-card > button:hover {
+    background: var(--color-primary-hover);
+}

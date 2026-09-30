@@ -13,6 +13,7 @@ export function Header() {
                 <>
                     <Link to="/profile">Profile</Link>
                     <Link to="/decks">Decks</Link>
+                    <Link to="/review">Review</Link>
                     <button className="header-logout" onClick={logout}>Logout</button>
                 </>
             ) : (

@@ -6,6 +6,7 @@ import { ProfilePage } from "./pages/ProfilePage"
 import { RegisterPage } from "./pages/RegisterPage"
 import { DeckDetailPage } from "./pages/DeckDetailPage"
 import { Layout } from "./components/Layout"
+import { ReviewPage } from "./pages/ReviewPage"
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/decks" element={<DecksPage />} />
           <Route path="/decks/:deckId" element={<DeckDetailPage />} />
+          <Route path="/review" element={<ReviewPage />} />
         </Route>
       </Routes>
     </div>
