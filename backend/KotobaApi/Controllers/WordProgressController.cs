@@ -12,9 +12,15 @@ public class WordProgressController : ControllerBase
 {
     private readonly IWordProgressService _service;
     public WordProgressController(IWordProgressService service) => _service = service;
-    
+
     [HttpGet("due")]
     [SameUser("userId")]
     public async Task<ActionResult<List<WordProgressDto>>> GetDue(Guid userId) =>
         Ok(await _service.GetDueForUserAsync(userId, DateTimeOffset.UtcNow));
+
+    [HttpPost("reviews")]
+    [SameUser("userId")]
+    public async Task<ActionResult<WordProgressDto>> Review(Guid userId, SubmitReviewDto dto) =>
+        Ok(await _service.ApplyReviewAsync(userId, dto.WordId, dto.EventId, dto.Rating, dto.Source,
+            DateTimeOffset.UtcNow));
 }
