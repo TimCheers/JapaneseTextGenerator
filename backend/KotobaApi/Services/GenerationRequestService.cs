@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KotobaApi.Data;
 using KotobaApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -8,16 +9,21 @@ namespace KotobaApi.Services;
 
 public class GenerationRequestService : IGenerationRequestService
 {
+    private const int WordsPerGeneration = 10;
+    private const int ComprehensionQuestionsPerText = 3;
+
     private readonly AppDbContext _db;
     private readonly IWordService _wordService;
+    private readonly IWordProgressService _wordProgressService;
     private readonly IAiTextGenerationService _aiTextGenerationService;
 
     public GenerationRequestService(AppDbContext db, IWordService wordService,
-        IAiTextGenerationService aiTextGenerationService)
+        IAiTextGenerationService aiTextGenerationService, IWordProgressService wordProgressService)
     {
         _db = db;
         _wordService = wordService;
         _aiTextGenerationService = aiTextGenerationService;
+        _wordProgressService = wordProgressService;
     }
 
     public async Task<GenerationRequestDto?> GetByIdAsync(Guid id, Guid userId)
@@ -44,7 +50,17 @@ public class GenerationRequestService : IGenerationRequestService
 
     public async Task<GenerationRequestDto> CreateAsync(Guid userId, CreateGenerationRequestDto dto)
     {
-        var words = await _wordService.GetAllForUserAsync(userId);
+        List<Word> allWords = await _wordService.GetAllForUserAsync(userId);
+
+        List<Guid> selectedWordIds = await _wordProgressService.SelectWordsForGenerationAsync(
+            userId, allWords, DateTimeOffset.UtcNow, WordsPerGeneration);
+
+        Dictionary<Guid, Word> allWordsById = allWords.ToDictionary(w => w.Id);
+        List<Word> words = selectedWordIds
+            .Where(allWordsById.ContainsKey)
+            .Select(id => allWordsById[id])
+            .ToList();
+
         var request = new GenerationRequest
         {
             Id = Guid.NewGuid(),
@@ -62,15 +78,39 @@ public class GenerationRequestService : IGenerationRequestService
 
         try
         {
-            string content =  await _aiTextGenerationService.GenerateTextAsync(words);
+            string content = await _aiTextGenerationService.GenerateTextAsync(words);
             request.Status = GenerationStatus.Completed;
             request.CompletedAt = DateTimeOffset.UtcNow;
-            _db.GeneratedTexts.Add(new GeneratedText
+
+            var generatedText = new GeneratedText
             {
                 Id = Guid.NewGuid(), GenerationRequestId = request.Id, Content = content,
                 CreatedAt = DateTimeOffset.UtcNow
-            });
+            };
+            _db.GeneratedTexts.Add(generatedText);
 
+            try
+            {
+                List<ComprehensionQuestionSeed> seeds = await _aiTextGenerationService
+                    .GenerateComprehensionQuestionsAsync(content, ComprehensionQuestionsPerText);
+
+                foreach (ComprehensionQuestionSeed seed in seeds)
+                {
+                    _db.ComprehensionQuestions.Add(new ComprehensionQuestion
+                    {
+                        Id = Guid.NewGuid(),
+                        GeneratedTextId = generatedText.Id,
+                        QuestionText = seed.QuestionText,
+                        Options = JsonSerializer.Serialize(seed.Options),
+                        CorrectAnswer = seed.CorrectAnswer,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
+                }
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
         }
         catch (Exception e)
         {
@@ -78,7 +118,7 @@ public class GenerationRequestService : IGenerationRequestService
             request.CompletedAt = DateTimeOffset.UtcNow;
             request.ErrorMessage = e.Message;
         }
-        
+
         _db.GenerationRequests.Add(request);
         await _db.SaveChangesAsync();
 

@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Text.Json;
 using KotobaApi.Models;
 using System.Text.Json.Serialization;
 
@@ -53,6 +54,7 @@ public class GeminiTextGenerationService : IAiTextGenerationService
                         throw new InvalidOperationException("Gemini:Model is not configured");
 
         _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+        _httpClient.DefaultRequestHeaders.Remove("x-goog-api-key");
 
         string wordsPrompt = string.Join("\n", words.Select(w => $"Word: {w.Term}\tMeaning: {w.Meaning}"));
 
@@ -73,5 +75,53 @@ public class GeminiTextGenerationService : IAiTextGenerationService
 
         return parsedResponse?.Candidates.FirstOrDefault()?.Content.Parts.FirstOrDefault()?.Text ??
                throw new InvalidOperationException("Gemini returned no content");
+    }
+
+    public async Task<List<ComprehensionQuestionSeed>> GenerateComprehensionQuestionsAsync(string text, int count)
+    {
+        string? apiKey = _config["Gemini:ApiKey"] ??
+                         throw new InvalidOperationException("Gemini:ApiKey is not configured");
+        string? model = _config["Gemini:Model"] ??
+                        throw new InvalidOperationException("Gemini:Model is not configured");
+
+        _httpClient.DefaultRequestHeaders.Remove("x-goog-api-key");
+        _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+
+        string systemPrompt =
+            $"You will receive a short Japanese text. Write exactly {count} multiple-choice reading-comprehension " +
+            "questions about it, in Japanese. Each question must have exactly 4 options, and exactly one correct " +
+            "answer copied verbatim from its options. Respond with ONLY a raw JSON array (no markdown, no code " +
+            "fences, no explanations) in this exact shape: " +
+            "[{\"question\":\"...\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correctAnswer\":\"...\"}]";
+
+        GeminiRequest request = new GeminiRequest(
+            new List<GeminiRoleParts>
+                { new GeminiRoleParts("user", new List<GeminiText> { new GeminiText(text) }) },
+            new GeminiParts(new List<GeminiText> { new GeminiText(systemPrompt) }));
+
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
+            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", request);
+        response.EnsureSuccessStatusCode();
+
+        GeminiResponse? parsedResponse = await response.Content.ReadFromJsonAsync<GeminiResponse>();
+        string raw = parsedResponse?.Candidates.FirstOrDefault()?.Content.Parts.FirstOrDefault()?.Text ??
+                     throw new InvalidOperationException("Gemini returned no content");
+
+        List<ComprehensionQuestionSeed>? seeds = JsonSerializer.Deserialize<List<ComprehensionQuestionSeed>>(
+            StripCodeFence(raw), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return seeds ?? [];
+    }
+
+    private static string StripCodeFence(string text)
+    {
+        string trimmed = text.Trim();
+        if (!trimmed.StartsWith("```")) return trimmed;
+
+        int firstNewLine = trimmed.IndexOf('\n');
+        int lastFence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+        return firstNewLine >= 0 && lastFence > firstNewLine
+            ? trimmed[(firstNewLine + 1)..lastFence].Trim()
+            : trimmed;
     }
 }
