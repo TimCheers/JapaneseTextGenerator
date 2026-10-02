@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 export interface Deck {
   id: string;
@@ -11,8 +13,6 @@ export interface CreateDeckRequest {
   name: string;
   description: string | null;
 }
-
-const API_BASE_URL = "http://localhost:5166";
 
 export async function getDecks(userId: string): Promise<Deck[]> {
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}/decks`, { headers: getAuthHeaders(), });

@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 export interface PracticeAttempt {
     id: string;
@@ -8,7 +10,6 @@ export interface PracticeAttempt {
     score: number | null;
 }
 
-const API_BASE_URL = "http://localhost:5166";
 
 export async function createPracticeAttempt(userId: string, generatedTextId: string): Promise<PracticeAttempt> {
     const response = await fetch(

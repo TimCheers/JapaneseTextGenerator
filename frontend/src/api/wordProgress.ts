@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 export type FsrsRating = 1 | 2 | 3 | 4;
 
@@ -27,7 +29,6 @@ export interface WordProgress {
     lapseCount: number;
 }
 
-const API_BASE_URL = "http://localhost:5166";
 
 export async function getDueWords(userId: string): Promise<WordProgress[]> {
     const response = await fetch(`${API_BASE_URL}/api/users/${userId}/word-progress/due`, {

@@ -1,7 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
 
-
-const API_BASE_URL = "http://localhost:5166";
 
 export async function createGenerationRequest(userId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}/generation-requests`, {

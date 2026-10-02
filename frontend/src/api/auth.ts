@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
 
 
 export interface RegisterRequest {
@@ -24,7 +24,7 @@ export interface AuthResponse {
 }
 
 export async function registerUser(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch("http://localhost:5166/api/Users", {
+    const response = await fetch(`${API_BASE_URL}/api/Users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -37,7 +37,7 @@ export async function registerUser(data: RegisterRequest): Promise<AuthResponse>
 }
 
 export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch("http://localhost:5166/api/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
