@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 export interface UserAnswer {
     id: string;
@@ -8,7 +10,6 @@ export interface UserAnswer {
     answeredAt: string;
 }
 
-const API_BASE_URL = "http://localhost:5166";
 
 export async function submitAnswer(
     userId: string,

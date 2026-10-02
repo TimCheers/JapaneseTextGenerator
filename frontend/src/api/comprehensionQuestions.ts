@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 export interface ComprehensionQuestion {
     id: string;
@@ -13,8 +15,6 @@ interface RawComprehensionQuestion {
     questionText: string;
     options: string;
 }
-
-const API_BASE_URL = "http://localhost:5166";
 
 export async function getComprehensionQuestions(
     userId: string,

@@ -45,11 +45,13 @@ builder.Services.AddSingleton<IFsrsScheduler, Fsrs7Scheduler>();
 //builder.Services.AddHttpClient<IAiTextGenerationService, OpenAiTextGenerationService>();
 builder.Services.AddHttpClient<IAiTextGenerationService, GeminiTextGenerationService>();
 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
+    ?? Array.Empty<string>();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod());
 });

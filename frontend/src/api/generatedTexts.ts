@@ -1,4 +1,6 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
+
 
 
 export interface GeneratedText {
@@ -7,9 +9,6 @@ export interface GeneratedText {
     content: string;
     createdAt: string;
 }
-
-const API_BASE_URL = "http://localhost:5166";
-
 
 export async function getGeneratedTexts(userId: string): Promise<GeneratedText[]> {
   const response = await fetch(`${API_BASE_URL}/api/users/${userId}/generated-texts` , { headers: getAuthHeaders(), });

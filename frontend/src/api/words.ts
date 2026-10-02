@@ -1,4 +1,5 @@
 import { getAuthHeaders } from "./authHeaders"
+import { API_BASE_URL } from "./config"
 
 
 export interface Word {
@@ -26,7 +27,6 @@ export interface CreateWordRequest {
     acquisitionSource: string | null;
 }
 
-const API_BASE_URL = "http://localhost:5166";
 
 export async function getWordsForDeck(deckId: string): Promise<Word[]> {
     const response = await fetch(`${API_BASE_URL}/api/decks/${deckId}/words`, { headers: getAuthHeaders(), });
